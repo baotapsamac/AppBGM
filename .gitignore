@@ -1,0 +1,19 @@
+# Python & Build files
+__pycache__/
+*.pyc
+*.pyo
+build/
+dist/
+.venv/
+venv/
+*.tmp
+
+# IDE & System
+.claude/
+.idea/
+.vscode/
+Thumbs.db
+Desktop.ini
+
+# LibreOffice Portable (large binary directory, optional to ignore)
+LibreOffice/

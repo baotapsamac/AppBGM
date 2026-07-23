@@ -1,0 +1,194 @@
+[
+  [
+    "Tên khoa",
+    null
+  ],
+  [
+    "Bản số",
+    null
+  ],
+  [
+    "Tên học phần",
+    null
+  ],
+  [
+    "Tên bài giảng",
+    null
+  ],
+  [
+    "Đối tượng",
+    null
+  ],
+  [
+    "Năm học",
+    null
+  ],
+  [
+    "Cấp bậc, học vị giảng viên biên soạn",
+    null
+  ],
+  [
+    "Họ tên giảng viên biên soạn",
+    null
+  ],
+  [
+    "Ngày biên soạn",
+    "THÁNG m NĂM yyyy"
+  ],
+  [
+    "Ngày phê duyệt",
+    "Ngày dd tháng m năm yyyy"
+  ],
+  [
+    "Cấp bậc, học vị người thông qua",
+    null
+  ],
+  [
+    "Họ tên người thông qua",
+    null
+  ],
+  [
+    "Phương pháp thông qua",
+    null
+  ],
+  [
+    "Địa điểm thông qua",
+    null
+  ],
+  [
+    "Giờ thông qua",
+    null
+  ],
+  [
+    "Ngày thông qua",
+    "Ngày dd tháng m năm yyyy"
+  ],
+  [
+    "Địa điểm phê duyệt",
+    null
+  ],
+  [
+    "Nhận xét phần nội dung bài giảng",
+    null
+  ],
+  [
+    "Nhận xét phần thực hành giảng bài",
+    null
+  ],
+  [
+    "Kết luận phê duyệt",
+    null
+  ],
+  [
+    "Chức vụ người phê duyệt",
+    null
+  ],
+  [
+    "Cấp bậc, học vị người phê duyệt",
+    null
+  ],
+  [
+    "Họ tên người phê duyệt",
+    null
+  ],
+  [
+    "Mục đích",
+    null
+  ],
+  [
+    "Yêu cầu về kiến thức",
+    null
+  ],
+  [
+    "Yêu cầu về kỹ năng",
+    null
+  ],
+  [
+    "Mức tự chủ và trách nhiệm",
+    null
+  ],
+  [
+    "Nội dung bài giảng",
+    null
+  ],
+  [
+    "Tổng số thời gian",
+    null
+  ],
+  [
+    "Phân bổ thời gian",
+    null
+  ],
+  [
+    "Tổ chức lớp học",
+    null
+  ],
+  [
+    "Phương pháp của giảng viên",
+    null
+  ],
+  [
+    "Phương pháp của học viên",
+    null
+  ],
+  [
+    "Phòng học",
+    null
+  ],
+  [
+    "Vật chất bảo đảm của giảng viên",
+    null
+  ],
+  [
+    "Vật chất bảo đảm của học viên",
+    null
+  ],
+  [
+    "Tài liệu học tập chính",
+    null
+  ],
+  [
+    "Tài liệu tham khảo",
+    null
+  ],
+  [
+    "Thời gian thực hành giảng bài",
+    null
+  ],
+  [
+    "Thời gian thủ tục giảng bài",
+    null
+  ],
+  [
+    "Thời gian nội dung bài giảng",
+    null
+  ],
+  [
+    "Thời gian mở đầu",
+    null
+  ],
+  [
+    "Thời gian phần nội dung",
+    null
+  ],
+  [
+    "Thời gian kết luận",
+    null
+  ],
+  [
+    "Thời gian kết thúc giảng bài",
+    null
+  ],
+  [
+    "Nội dung kết thúc giảng bài",
+    null
+  ],
+  [
+    "Chức vụ người thông qua",
+    null
+  ],
+  [
+    "Chức vụ giảng viên biên soạn",
+    null
+  ]
+]

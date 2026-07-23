@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AppBGM</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>
+<link rel="stylesheet" href="/static/style.css?v=3">
+<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-title">
+    <h1>Công cụ tạo bài giảng</h1>
+  </div>
+  <div class="topbar-right">
+    <button id="btnHints" class="hint-toggle" data-tip="Bật/tắt phần chú thích hướng dẫn cho các nút trong công cụ" aria-pressed="true">💡 Hướng dẫn</button>
+    <div class="topbar-status" id="statusBox">Chưa nạp dữ liệu</div>
+  </div>
+</header>
+
+<main class="workspace">
+  <aside class="panel-form">
+    <section class="uploader" id="uploader">
+      <div class="upload-row upload-row-single">
+        <div class="drop-compact" id="dropXlsx" style="cursor: pointer;" data-tip="Bấm để mở hộp thoại chọn file Excel dữ liệu.">
+          <span class="drop-compact-icon">X</span>
+          <span class="drop-compact-name" id="nameXlsx">Bấm để chọn file Excel dữ liệu…</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; margin-top: 8px;">
+        <button id="btnDownloadTemplate" class="btn btn-outline" style="flex:1" data-tip="Tải file Excel mẫu được định dạng chuẩn, chỉ cho phép nhập dữ liệu">Tải file mẫu Excel</button>
+      </div>
+      <div id="warnBox" class="warn-box" hidden></div>
+    </section>
+
+    <div class="stepper-ui">
+      <div class="step-item step-done">
+        <span class="step-num">1</span>
+        <span class="step-text">Chuẩn bị File</span>
+      </div>
+      <div class="step-divider"></div>
+      <div class="step-item step-done">
+        <span class="step-num">2</span>
+        <span class="step-text">Nạp Dữ liệu</span>
+      </div>
+      <div class="step-divider"></div>
+      <div class="step-item step-active">
+        <span class="step-num">3</span>
+        <span class="step-text">Chỉnh sửa</span>
+      </div>
+      <div class="step-divider"></div>
+      <div class="step-item">
+        <span class="step-num">4</span>
+        <span class="step-text">Xuất File</span>
+      </div>
+    </div>
+
+    <div class="tab-filter-row" id="tabFilterRow" hidden>
+      <input type="text" id="tabFilter" class="tab-filter" placeholder="Tìm bài giảng theo tên…">
+    </div>
+    <div class="lecture-tabs" id="lectureTabs"></div>
+    <div class="form-scroll" id="fieldForm">
+      <p class="form-empty">Chọn file Excel ở trên rồi bấm "Nạp dữ liệu" để bắt đầu.</p>
+    </div>
+    <div class="form-actions">
+      <div class="form-actions-buttons">
+        <button id="btnExportOne" class="btn btn-primary" disabled data-tip="Tải xuống bài giảng đang chọn dưới dạng file Word">Xuất bài này</button>
+        <button id="btnExportAll" class="btn btn-outline" disabled data-tip="Tick chọn bài giảng cần xuất ngay trên các tab phía trên; bấm để đóng gói các bài đã tick thành 1 file .zip">Xuất tất cả (.zip)</button>
+      </div>
+      <div class="export-progress" id="exportProgress" hidden>
+        <span class="spinner"></span>
+        <span id="exportProgressText">Đang xuất…</span>
+      </div>
+    </div>
+    <div class="author-footer" style="margin-top: 10px; text-align: center; font-size: 12px; color: #5B5B57;">
+      Tác giả Nguyễn Mạnh Hùng - Khoa Vũ khí
+    </div>
+  </aside>
+
+  <section class="panel-preview">
+    <div class="preview-toolbar">
+      <span>Xem trước</span>
+      <span class="spinner" id="previewSpinner" hidden></span>
+    </div>
+    <iframe id="previewFrame" title="Bản xem trước PDF"></iframe>
+  </section>
+</main>
+
+<script src="/static/script.js?v=9"></script>
+</body>
+</html>
