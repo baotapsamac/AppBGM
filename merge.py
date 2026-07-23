@@ -349,14 +349,10 @@ def generate_protected_excel(docx_path, out_xlsx_path, num_lectures=10):
 # ---------------------------------------------------------------- Xuất PDF --
 def _find_soffice():
     import sys
-    
-    if getattr(sys, 'frozen', False):
-        base = os.path.dirname(sys.executable)
-    else:
-        base = os.path.dirname(os.path.abspath(__file__))
-        
+    base = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
     paths = [
         os.path.join(base, 'LibreOffice', 'program', 'soffice.exe'),
+        os.path.join(os.getcwd(), 'LibreOffice', 'program', 'soffice.exe'),
         r"C:\Program Files\LibreOffice\program\soffice.exe",
         r"C:\Program Files (x86)\LibreOffice\program\soffice.exe"
     ]
@@ -368,6 +364,15 @@ def _find_soffice():
 def docx_to_pdf(docx_path, output_dir):
     soffice = _find_soffice()
     flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-    subprocess.run([soffice, '--headless', '--convert-to', 'pdf', docx_path, '--outdir', output_dir], check=True, creationflags=flags)
     pdf_name = os.path.splitext(os.path.basename(docx_path))[0] + '.pdf'
-    return os.path.join(output_dir, pdf_name)
+    out_pdf_path = os.path.join(output_dir, pdf_name)
+    
+    if os.path.exists(out_pdf_path):
+        try:
+            os.remove(out_pdf_path)
+        except Exception:
+            pass
+
+    cmd = [soffice, '--headless', '--convert-to', 'pdf', docx_path, '--outdir', output_dir]
+    subprocess.run(cmd, check=True, creationflags=flags)
+    return out_pdf_path
