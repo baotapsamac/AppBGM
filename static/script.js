@@ -111,6 +111,7 @@ $('#dropXlsx').addEventListener('click', async () => {
     renderTabs();
     renderForm();
     $('#btnExportOne').disabled = false;
+    if ($('#btnDirectEdit')) $('#btnDirectEdit').disabled = false;
     updateExportAllLabel();
     $('#statusBox').textContent = `Đã nạp ${LECTURE_ORDER.length} bài giảng · ${FIELDS.length} trường`;
     $('#statusBox').classList.add('ready');
@@ -158,6 +159,7 @@ async function triggerUpload(file) {
     renderTabs();
     renderForm();
     $('#btnExportOne').disabled = false;
+    if ($('#btnDirectEdit')) $('#btnDirectEdit').disabled = false;
     updateExportAllLabel();
     $('#statusBox').textContent = `Đã nạp ${LECTURE_ORDER.length} bài giảng · ${FIELDS.length} trường`;
     $('#statusBox').classList.add('ready');
@@ -301,6 +303,7 @@ function renderForm() {
     }
     input.dataset.field = f.name;
     input.spellcheck = false;
+    input.setAttribute('lang', 'vi');
     input.setAttribute('autocomplete', 'off');
     input.setAttribute('autocorrect', 'off');
     input.setAttribute('autocapitalize', 'off');
@@ -601,3 +604,98 @@ $('#btnDownloadTemplate').addEventListener('click', async () => {
     btn.textContent = originalText;
   }
 });
+
+// ---------- Chỉnh sửa trực tiếp (LibreOffice) ----------
+let CURRENT_EDIT_ID = null;
+
+if ($('#btnDirectEdit')) {
+  $('#btnDirectEdit').addEventListener('click', async () => {
+    saveCurrentFormIntoState();
+    if (!CURRENT) return;
+
+    const btn = $('#btnDirectEdit');
+    btn.disabled = true;
+    btn.textContent = 'Đang mở LibreOffice…';
+
+    try {
+      const data = Object.assign({}, LECTURES[CURRENT]);
+      for (const key in data) {
+        if (shouldAutoPunctuate(key) && data[key]) {
+          data[key] = autoPunctuate(String(data[key]));
+        }
+      }
+
+      const res = await fetch('/api/direct_edit/open', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: data }),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        alert(result.error || 'Lỗi khi mở trình chỉnh sửa.');
+        btn.disabled = false;
+        btn.textContent = 'Chỉnh sửa trực tiếp';
+        return;
+      }
+
+      CURRENT_EDIT_ID = result.edit_id;
+      btn.textContent = 'Đang chỉnh sửa…';
+      if ($('#btnCompleteEdit')) $('#btnCompleteEdit').hidden = false;
+      alert('Đã mở LibreOffice Writer!\n\nSau khi sửa xong văn bản, hãy bấm "Ctrl + S" để lưu trên LibreOffice rồi bấm nút "Hoàn tất" ở ứng dụng để cập nhật lại bản xem trước PDF.');
+    } catch (e) {
+      alert('Lỗi kết nối: ' + e);
+      btn.disabled = false;
+      btn.textContent = 'Chỉnh sửa trực tiếp';
+    }
+  });
+}
+
+if ($('#btnCompleteEdit')) {
+  $('#btnCompleteEdit').addEventListener('click', async () => {
+    if (!CURRENT_EDIT_ID) return;
+
+    const btnComplete = $('#btnCompleteEdit');
+    const btnDirect = $('#btnDirectEdit');
+    const spinner = $('#previewSpinner');
+    if (spinner) spinner.hidden = false;
+    btnComplete.disabled = true;
+    btnComplete.textContent = 'Đang nạp lại PDF…';
+
+    try {
+      const res = await fetch('/api/direct_edit/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ edit_id: CURRENT_EDIT_ID }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        alert(errData.error || 'Lỗi khi cập nhật bản xem trước PDF.');
+        btnComplete.disabled = false;
+        btnComplete.textContent = 'Hoàn tất';
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const frame = $('#previewFrame');
+      frame.onload = () => { if (spinner) spinner.hidden = true; };
+      frame.src = url;
+
+      alert('Đã cập nhật bản xem trước PDF từ file chỉnh sửa thành công!');
+      CURRENT_EDIT_ID = null;
+      btnComplete.hidden = true;
+      btnComplete.disabled = false;
+      btnComplete.textContent = 'Hoàn tất';
+      btnDirect.disabled = false;
+      btnDirect.textContent = 'Chỉnh sửa trực tiếp';
+    } catch (e) {
+      alert('Lỗi kết nối: ' + e);
+      btnComplete.disabled = false;
+      btnComplete.textContent = 'Hoàn tất';
+    } finally {
+      if (spinner) spinner.hidden = true;
+    }
+  });
+}
+

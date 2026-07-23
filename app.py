@@ -147,10 +147,16 @@ def download_template():
         wb = openpyxl.load_workbook(sample_path)
         ws = wb.active
         ws.protection.sheet = True
+        ws.protection.enable()
+        ws.protection.insertColumns = False
+        ws.protection.insertRows = True
+        ws.protection.deleteRows = True
+        ws.protection.deleteColumns = True
+        ws.protection.formatCells = False
         
-        # Unlock columns B to Z so users can add multiple lectures
-        for col_idx in range(2, 26):
-            for row_idx in range(1, ws.max_row + 20):
+        # Unlock columns B to AZ for rows 1 to 51
+        for col_idx in range(2, 52):
+            for row_idx in range(1, 52):
                 cell = ws.cell(row=row_idx, column=col_idx)
                 cell.protection = Protection(locked=False)
                 
@@ -183,9 +189,15 @@ def download_template_native():
         wb = openpyxl.load_workbook(sample_path)
         ws = wb.active
         ws.protection.sheet = True
+        ws.protection.enable()
+        ws.protection.insertColumns = False
+        ws.protection.insertRows = True
+        ws.protection.deleteRows = True
+        ws.protection.deleteColumns = True
+        ws.protection.formatCells = False
         
-        for col_idx in range(2, 26):
-            for row_idx in range(1, ws.max_row + 20):
+        for col_idx in range(2, 52):
+            for row_idx in range(1, 52):
                 cell = ws.cell(row=row_idx, column=col_idx)
                 cell.protection = Protection(locked=False)
                 
@@ -412,6 +424,112 @@ def export_all_result_native(job_id):
     finally:
         if os.path.exists(zip_path):
             os.remove(zip_path)
+
+
+ACTIVE_EDIT_FILES = {}
+
+def get_swriter_path():
+    base_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(base_dir, 'LibreOffice', 'program', 'swriter.exe'),
+        os.path.join(os.getcwd(), 'LibreOffice', 'program', 'swriter.exe'),
+        resource_path('LibreOffice/program/swriter.exe'),
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return 'swriter'
+
+@app.route('/api/direct_edit/open', methods=['POST'])
+def direct_edit_open():
+    payload = request.get_json() or {}
+    values = payload.get('values', {})
+    
+    edit_id = uuid.uuid4().hex[:8]
+    out_docx = os.path.join(BASE, 'edit_%s.docx' % edit_id)
+    try:
+        _build_docx(values, out_docx)
+    except Exception as e:
+        return jsonify({'error': 'Lỗi khi tạo file bài giảng: %s' % str(e)}), 500
+    
+    swriter_path = get_swriter_path()
+        
+    try:
+        import subprocess
+        subprocess.Popen([swriter_path, out_docx])
+        with EXPORT_JOBS_LOCK:
+            ACTIVE_EDIT_FILES[edit_id] = out_docx
+        return jsonify({'success': True, 'edit_id': edit_id})
+    except Exception as e:
+        return jsonify({'error': 'Không thể mở LibreOffice Writer (%s): %s' % (swriter_path, str(e))}), 500
+
+
+def _send_save_and_close_to_libreoffice():
+    try:
+        import ctypes
+        import time
+        user32 = ctypes.windll.user32
+        hwnds = []
+        def enum_cb(h, extra):
+            if user32.IsWindowVisible(h):
+                length = user32.GetWindowTextLengthW(h)
+                if length > 0:
+                    buff = ctypes.create_unicode_buffer(length + 1)
+                    user32.GetWindowTextW(h, buff, length + 1)
+                    if 'LibreOffice Writer' in buff.value or 'edit_' in buff.value:
+                        hwnds.append(h)
+            return True
+
+        WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int, ctypes.c_int)
+        user32.EnumWindows(WNDENUMPROC(enum_cb), 0)
+
+        for h in hwnds:
+            try:
+                user32.SetForegroundWindow(h)
+                time.sleep(0.1)
+                VK_CONTROL = 0x11
+                VK_S = 0x53
+                KEYEVENTF_KEYUP = 0x0002
+                user32.keybd_event(VK_CONTROL, 0, 0, 0)
+                user32.keybd_event(VK_S, 0, 0, 0)
+                time.sleep(0.05)
+                user32.keybd_event(VK_S, 0, KEYEVENTF_KEYUP, 0)
+                user32.keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0)
+                time.sleep(0.3)
+                WM_CLOSE = 0x0010
+                user32.PostMessageW(h, WM_CLOSE, 0, 0)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
+@app.route('/api/direct_edit/complete', methods=['POST'])
+def direct_edit_complete():
+    payload = request.get_json() or {}
+    edit_id = payload.get('edit_id')
+    out_docx = None
+    with EXPORT_JOBS_LOCK:
+        out_docx = ACTIVE_EDIT_FILES.get(edit_id)
+        
+    if not out_docx or not os.path.exists(out_docx):
+        return jsonify({'error': 'Không tìm thấy file đang chỉnh sửa.'}), 400
+
+    import time
+    _send_save_and_close_to_libreoffice()
+    time.sleep(0.5)
+        
+    pdf_path = None
+    try:
+        pdf_path = merge.docx_to_pdf(out_docx, BASE)
+        with open(pdf_path, 'rb') as f:
+            pdf_bytes = f.read()
+        return send_file(io.BytesIO(pdf_bytes), mimetype='application/pdf')
+    except Exception as e:
+        return jsonify({'error': 'Lỗi khi cập nhật bản xem trước: %s' % str(e)}), 500
+    finally:
+        if pdf_path and os.path.exists(pdf_path):
+            os.remove(pdf_path)
 
 
 def run_flask():

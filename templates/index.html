@@ -81,8 +81,14 @@
 
   <section class="panel-preview">
     <div class="preview-toolbar">
-      <span>Xem trước</span>
-      <span class="spinner" id="previewSpinner" hidden></span>
+      <div class="preview-toolbar-title" style="display: flex; align-items: center; gap: 8px;">
+        <span>Xem trước</span>
+        <span class="spinner" id="previewSpinner" hidden></span>
+      </div>
+      <div class="preview-toolbar-actions" style="display: flex; gap: 8px;">
+        <button id="btnDirectEdit" class="btn btn-warning btn-sm" disabled data-tip="Mở LibreOffice Writer để chỉnh sửa bài giảng này trực tiếp">✏️ Chỉnh sửa trực tiếp</button>
+        <button id="btnCompleteEdit" class="btn btn-success btn-sm" hidden data-tip="Bấm sau khi đã chỉnh sửa xong trên LibreOffice để cập nhật ngay bản xem trước PDF">✅ Hoàn tất</button>
+      </div>
     </div>
     <iframe id="previewFrame" title="Bản xem trước PDF"></iframe>
   </section>

@@ -33,11 +33,11 @@ body{
 .topbar{
   background:var(--navy);
   color:#EFE9DD;
-  padding:12px 28px;
+  padding:5px 18px;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  border-bottom:3px solid var(--maroon);
+  border-bottom:2px solid var(--maroon);
 }
 .topbar-title{
   display:flex;
@@ -46,26 +46,26 @@ body{
 }
 .topbar h1{
   font-family:var(--serif);
-  font-size:20px;
+  font-size:15px;
   margin:0;
   font-weight:600;
   letter-spacing:.01em;
 }
 .topbar-author{
-  font-size:12px;
+  font-size:11px;
   color:#B9C6D6;
 }
 .topbar-right{
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:8px;
   flex-shrink:0;
 }
 .hint-toggle{
   font-family:var(--sans);
-  font-size:12.5px;
+  font-size:11px;
   font-weight:600;
-  padding:6px 12px;
+  padding:3px 8px;
   border-radius:var(--radius);
   border:1px solid #3C587A;
   background:transparent;
@@ -78,8 +78,8 @@ body{
 }
 .hint-toggle:hover{border-color:#8FA6C2;}
 .topbar-status{
-  font-size:13px;
-  padding:6px 14px;
+  font-size:11px;
+  padding:3px 10px;
   border:1px solid #3C587A;
   border-radius:var(--radius);
   color:#D8DEE6;
@@ -328,14 +328,19 @@ body{
 }
 .preview-toolbar{
   flex-shrink:0;
-  padding:10px 18px;
-  font-size:12.5px;
+  padding:4px 12px;
+  font-size:12px;
   color:var(--ink-soft);
   border-bottom:1px solid var(--paper-line);
   background:#fff;
   display:flex;
   align-items:center;
-  gap:10px;
+  justify-content:space-between;
+}
+.btn-sm{
+  padding: 3px 8px;
+  font-size: 11px;
+  height: 26px;
 }
 #previewFrame{
   flex:1;

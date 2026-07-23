@@ -1,9 +1,9 @@
 [Setup]
-AppName=AppBGM
+AppName=AppBGM Editor
 AppVersion=1.2
-DefaultDirName={autopf}\AppBGM
-DefaultGroupName=AppBGM
-OutputBaseFilename=AppBGM_v1.2_Setup_x64
+DefaultDirName={autopf}\AppBGM Editor
+DefaultGroupName=AppBGM Editor
+OutputBaseFilename=AppBGM_Editor_v1.2_Setup_x64
 Compression=lzma
 SolidCompression=yes
 PrivilegesRequired=lowest
@@ -18,8 +18,8 @@ Source: "dist\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs crea
 Source: "LibreOffice\*"; DestDir: "{app}\LibreOffice"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\AppBGM"; Filename: "{app}\app.exe"
-Name: "{autodesktop}\AppBGM"; Filename: "{app}\app.exe"; Tasks: desktopicon
+Name: "{autoprograms}\AppBGM Editor"; Filename: "{app}\app.exe"
+Name: "{autodesktop}\AppBGM Editor"; Filename: "{app}\app.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\app.exe"; Description: "Khởi chạy AppBGM"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\app.exe"; Description: "Khởi chạy AppBGM Editor"; Flags: nowait postinstall skipifsilent

@@ -15,5 +15,6 @@ venv/
 Thumbs.db
 Desktop.ini
 
-# LibreOffice Portable (large binary directory, optional to ignore)
+# LibreOffice Portable & Large Output Installers (>100MB)
 LibreOffice/
+Output/
