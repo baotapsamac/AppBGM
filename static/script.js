@@ -487,14 +487,14 @@ const btnSavePreset = $('#btnSavePreset');
 if (btnSavePreset) {
   btnSavePreset.addEventListener('click', () => {
     saveCurrentFormIntoState();
-    if (!CURRENT_LECTURE || !LECTURES[CURRENT_LECTURE]) {
+    if (!CURRENT || !LECTURES[CURRENT]) {
       alert('Chưa chọn bài giảng nào để lưu mẫu.');
       return;
     }
     const presetData = {};
     PRESET_FIELDS.forEach((f) => {
-      if (LECTURES[CURRENT_LECTURE][f] !== undefined) {
-        presetData[f] = LECTURES[CURRENT_LECTURE][f];
+      if (LECTURES[CURRENT][f] !== undefined) {
+        presetData[f] = LECTURES[CURRENT][f];
       }
     });
     localStorage.setItem('APPBGM_PRESET', JSON.stringify(presetData));
@@ -511,12 +511,12 @@ if (btnLoadPreset) {
       return;
     }
     const presetData = JSON.parse(saved);
-    if (!CURRENT_LECTURE || !LECTURES[CURRENT_LECTURE]) {
+    if (!CURRENT || !LECTURES[CURRENT]) {
       alert('Chưa chọn bài giảng để áp dụng mẫu.');
       return;
     }
-    Object.assign(LECTURES[CURRENT_LECTURE], presetData);
-    renderForm(CURRENT_LECTURE);
+    Object.assign(LECTURES[CURRENT], presetData);
+    renderForm(CURRENT);
     queuePreview();
     alert('Đã nạp mẫu thông tin cố định thành công!');
   });
@@ -527,17 +527,17 @@ const btnDuplicate = $('#btnDuplicateLecture');
 if (btnDuplicate) {
   btnDuplicate.addEventListener('click', () => {
     saveCurrentFormIntoState();
-    if (!CURRENT_LECTURE || !LECTURES[CURRENT_LECTURE]) {
+    if (!CURRENT || !LECTURES[CURRENT]) {
       alert('Chưa chọn bài giảng để nhân bản.');
       return;
     }
-    let copyName = `${CURRENT_LECTURE} (Bản sao)`;
+    let copyName = `${CURRENT} (Bản sao)`;
     let n = 2;
     while (LECTURES[copyName]) {
-      copyName = `${CURRENT_LECTURE} (Bản sao ${n})`;
+      copyName = `${CURRENT} (Bản sao ${n})`;
       n++;
     }
-    LECTURES[copyName] = JSON.parse(JSON.stringify(LECTURES[CURRENT_LECTURE]));
+    LECTURES[copyName] = JSON.parse(JSON.stringify(LECTURES[CURRENT]));
     LECTURES[copyName]['Tên bài giảng'] = copyName;
     LECTURE_ORDER.push(copyName);
     SELECTED_FOR_EXPORT.add(copyName);
