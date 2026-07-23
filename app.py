@@ -306,8 +306,9 @@ EXPORT_JOBS_LOCK = threading.Lock()
 
 @app.route('/api/export_all/start', methods=['POST'])
 def export_all_start():
-    payload = request.get_json()
-    all_values = payload.get('lectures', {})  # {ten_bai: {truong: giatri}}
+    payload = request.get_json() or {}
+    all_values = payload.get('lectures', {})
+    include_pdf = payload.get('include_pdf', False)
     if not all_values:
         return jsonify({'error': 'Chưa chọn bài giảng nào để xuất.'}), 400
 
@@ -318,12 +319,12 @@ def export_all_start():
             'zip_path': None, 'error': None, 'skipped': [],
         }
 
-    args = (job_id, all_values)
+    args = (job_id, all_values, include_pdf)
     threading.Thread(target=_run_export_all_job, args=args, daemon=True).start()
     return jsonify({'job_id': job_id})
 
 
-def _run_export_all_job(job_id, all_values):
+def _run_export_all_job(job_id, all_values, include_pdf=False):
     zip_path = os.path.join(BASE, 'BoBaiGiang_%s.zip' % uuid.uuid4().hex[:8])
     used_names = set()
     skipped = []
@@ -341,12 +342,22 @@ def _run_export_all_job(job_id, all_values):
                         arcname = '%s_%d' % (safe, n)
                         n += 1
                     zf.write(out_docx, arcname='%s.docx' % arcname)
+                    
+                    if include_pdf:
+                        try:
+                            pdf_path = merge.docx_to_pdf(out_docx, BASE)
+                            if os.path.exists(pdf_path):
+                                zf.write(pdf_path, arcname='%s.pdf' % arcname)
+                        except Exception as pe:
+                            print('Warning PDF export error for %s: %s' % (lecture_name, pe))
+                            
                     used_names.add(arcname)
                 except Exception as e:
                     skipped.append({'lecture': lecture_name, 'error': str(e)})
                 finally:
-                    if out_docx and os.path.exists(out_docx):
-                        os.remove(out_docx)
+                    for p in (out_docx, pdf_path):
+                        if p and os.path.exists(p):
+                            os.remove(p)
                 with EXPORT_JOBS_LOCK:
                     EXPORT_JOBS[job_id]['done'] += 1
 

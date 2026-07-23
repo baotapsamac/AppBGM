@@ -29,8 +29,12 @@
           <span class="drop-compact-name" id="nameXlsx">Bấm để chọn file Excel dữ liệu…</span>
         </div>
       </div>
-      <div style="display: flex; gap: 8px; margin-top: 8px;">
-        <button id="btnDownloadTemplate" class="btn btn-outline" style="flex:1" data-tip="Tải file Excel mẫu được định dạng chuẩn, chỉ cho phép nhập dữ liệu">Tải file mẫu Excel</button>
+      <div style="display: flex; gap: 6px; margin-top: 6px;">
+        <button id="btnDownloadTemplate" class="btn btn-outline btn-sm" style="flex:1" data-tip="Tải file Excel mẫu được định dạng chuẩn, chỉ cho phép nhập dữ liệu">Tải file mẫu Excel</button>
+      </div>
+      <div style="display: flex; gap: 6px; margin-top: 4px;">
+        <button id="btnSavePreset" class="btn btn-outline btn-sm" style="flex:1" data-tip="Lưu các thông tin đơn vị & người phê duyệt làm mẫu mặc định">💾 Lưu Mẫu Thông Tin</button>
+        <button id="btnLoadPreset" class="btn btn-outline btn-sm" style="flex:1" data-tip="Nạp thông tin đơn vị & người phê duyệt đã lưu trước đó">📂 Tải Mẫu Thông Tin</button>
       </div>
       <div id="warnBox" class="warn-box" hidden></div>
     </section>
@@ -59,15 +63,19 @@
 
     <div class="tab-filter-row" id="tabFilterRow" hidden>
       <input type="text" id="tabFilter" class="tab-filter" placeholder="Tìm bài giảng theo tên…">
+      <button id="btnDuplicateLecture" class="btn btn-outline btn-sm" style="margin-left: 6px;" data-tip="Tạo bản sao từ bài giảng đang chọn">📋 Nhân bản</button>
     </div>
     <div class="lecture-tabs" id="lectureTabs"></div>
     <div class="form-scroll" id="fieldForm">
       <p class="form-empty">Chọn file Excel ở trên rồi bấm "Nạp dữ liệu" để bắt đầu.</p>
     </div>
     <div class="form-actions">
-      <div class="form-actions-buttons">
-        <button id="btnExportOne" class="btn btn-primary" disabled data-tip="Tải xuống bài giảng đang chọn dưới dạng file Word">Xuất bài này</button>
-        <button id="btnExportAll" class="btn btn-outline" disabled data-tip="Tick chọn bài giảng cần xuất ngay trên các tab phía trên; bấm để đóng gói các bài đã tick thành 1 file .zip">Xuất tất cả (.zip)</button>
+      <div class="form-actions-buttons" style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; gap: 6px;">
+          <button id="btnExportOne" class="btn btn-primary" style="flex:1;" disabled data-tip="Tải xuống bài giảng đang chọn dưới dạng file Word">Xuất bài này (.docx)</button>
+          <button id="btnExportAll" class="btn btn-outline" style="flex:1;" disabled data-tip="Tick chọn các bài giảng; bấm để đóng gói thành 1 file .zip Word">Xuất tất cả (.zip)</button>
+        </div>
+        <button id="btnExportZipPdf" class="btn btn-outline" style="width:100%;" disabled data-tip="Đóng gói tất cả bài giảng đã chọn thành file .zip chứa cả file Word (.docx) và PDF (.pdf)">📦 Xuất ZIP (Gồm Word & PDF)</button>
       </div>
       <div class="export-progress" id="exportProgress" hidden>
         <span class="spinner"></span>

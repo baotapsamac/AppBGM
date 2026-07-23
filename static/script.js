@@ -475,39 +475,80 @@ function queuePreview() {
   PREVIEW_TIMER = setTimeout(updatePreview, 1200);
 }
 
-// ---------- Xuất 1 bài ----------
-$('#btnExportOne').addEventListener('click', async () => {
-  saveCurrentFormIntoState();
-  if (!confirmIfMissing([CURRENT])) return;
-  
-  const btn = $('#btnExportOne');
-  btn.disabled = true;
-  btn.textContent = 'Đang xuất...';
-  
-  try {
-    const res = await fetch('/api/export_native', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values: LECTURES[CURRENT] }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.error || 'Lỗi khi xuất file.');
+// ---------- Preset Manager (Lưu/Tải Mẫu Thông Tin Cố Định) ----------
+const PRESET_FIELDS = [
+  'Tên khoa', 'Chức vụ người phê duyệt', 'Cấp bậc, học vị người phê duyệt', 'Họ tên người phê duyệt',
+  'Địa điểm phê duyệt', 'Chức vụ người thông qua', 'Cấp bậc, học vị người thông qua', 'Họ tên người thông qua',
+  'Phương pháp thông qua', 'Địa điểm thông qua', 'Chức vụ giảng viên biên soạn',
+  'Cấp bậc, học vị giảng viên biên soạn', 'Họ tên giảng viên biên soạn'
+];
+
+const btnSavePreset = $('#btnSavePreset');
+if (btnSavePreset) {
+  btnSavePreset.addEventListener('click', () => {
+    saveCurrentFormIntoState();
+    if (!CURRENT_LECTURE || !LECTURES[CURRENT_LECTURE]) {
+      alert('Chưa chọn bài giảng nào để lưu mẫu.');
       return;
     }
-    if (data.success) {
-      alert(data.message);
-    }
-  } catch (e) {
-    alert('Lỗi kết nối: ' + e);
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<span class="icon">💾</span> Xuất 1 bài này';
-  }
-});
+    const presetData = {};
+    PRESET_FIELDS.forEach((f) => {
+      if (LECTURES[CURRENT_LECTURE][f] !== undefined) {
+        presetData[f] = LECTURES[CURRENT_LECTURE][f];
+      }
+    });
+    localStorage.setItem('APPBGM_PRESET', JSON.stringify(presetData));
+    alert('Đã lưu mẫu thông tin đơn vị & người phê duyệt/biên soạn thành công!');
+  });
+}
 
-// ---------- Xuất tất cả (chạy nền, có thanh tiến trình) ----------
-$('#btnExportAll').addEventListener('click', async () => {
+const btnLoadPreset = $('#btnLoadPreset');
+if (btnLoadPreset) {
+  btnLoadPreset.addEventListener('click', () => {
+    const saved = localStorage.getItem('APPBGM_PRESET');
+    if (!saved) {
+      alert('Chưa có mẫu thông tin nào được lưu trước đây.');
+      return;
+    }
+    const presetData = JSON.parse(saved);
+    if (!CURRENT_LECTURE || !LECTURES[CURRENT_LECTURE]) {
+      alert('Chưa chọn bài giảng để áp dụng mẫu.');
+      return;
+    }
+    Object.assign(LECTURES[CURRENT_LECTURE], presetData);
+    renderForm(CURRENT_LECTURE);
+    queuePreview();
+    alert('Đã nạp mẫu thông tin cố định thành công!');
+  });
+}
+
+// ---------- Nhân bản bài giảng ----------
+const btnDuplicate = $('#btnDuplicateLecture');
+if (btnDuplicate) {
+  btnDuplicate.addEventListener('click', () => {
+    saveCurrentFormIntoState();
+    if (!CURRENT_LECTURE || !LECTURES[CURRENT_LECTURE]) {
+      alert('Chưa chọn bài giảng để nhân bản.');
+      return;
+    }
+    let copyName = `${CURRENT_LECTURE} (Bản sao)`;
+    let n = 2;
+    while (LECTURES[copyName]) {
+      copyName = `${CURRENT_LECTURE} (Bản sao ${n})`;
+      n++;
+    }
+    LECTURES[copyName] = JSON.parse(JSON.stringify(LECTURES[CURRENT_LECTURE]));
+    LECTURES[copyName]['Tên bài giảng'] = copyName;
+    LECTURE_ORDER.push(copyName);
+    SELECTED_FOR_EXPORT.add(copyName);
+    renderTabs();
+    selectTab(copyName);
+    alert(`Đã nhân bản bài giảng: "${copyName}"`);
+  });
+}
+
+// ---------- Hàm dùng chung xuất tất cả / xuất ZIP Word & PDF ----------
+async function runExportAllJob(includePdf = false) {
   saveCurrentFormIntoState();
   const names = LECTURE_ORDER.filter((n) => SELECTED_FOR_EXPORT.has(n));
   if (!names.length) { alert('Chưa chọn bài giảng nào để xuất.'); return; }
@@ -516,10 +557,13 @@ $('#btnExportAll').addEventListener('click', async () => {
   const lecturesPayload = {};
   names.forEach((n) => { lecturesPayload[n] = LECTURES[n]; });
 
-  const btn = $('#btnExportAll');
+  const btnAll = $('#btnExportAll');
+  const btnPdf = $('#btnExportZipPdf');
   const progressBox = $('#exportProgress');
   const progressText = $('#exportProgressText');
-  btn.disabled = true;
+  
+  if (btnAll) btnAll.disabled = true;
+  if (btnPdf) btnPdf.disabled = true;
   progressBox.hidden = false;
   progressText.textContent = `Đang xuất 0/${names.length} bài…`;
 
@@ -527,7 +571,7 @@ $('#btnExportAll').addEventListener('click', async () => {
     const startRes = await fetch('/api/export_all/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lectures: lecturesPayload }),
+      body: JSON.stringify({ lectures: lecturesPayload, include_pdf: includePdf }),
     });
     const startData = await startRes.json();
     if (!startRes.ok) { alert(startData.error || 'Lỗi khi xuất file.'); return; }
@@ -568,8 +612,53 @@ $('#btnExportAll').addEventListener('click', async () => {
   } catch (e) {
     alert('Lỗi kết nối: ' + e);
   } finally {
+    if (btnAll) btnAll.disabled = false;
+    if (btnPdf) btnPdf.disabled = false;
     progressBox.hidden = true;
     updateExportAllLabel();
+  }
+}
+
+// ---------- Nút Xuất tất cả Word (.zip) ----------
+const btnExportAll = $('#btnExportAll');
+if (btnExportAll) {
+  btnExportAll.addEventListener('click', () => runExportAllJob(false));
+}
+
+// ---------- Nút Xuất tất cả Word & PDF (.zip) ----------
+const btnExportZipPdf = $('#btnExportZipPdf');
+if (btnExportZipPdf) {
+  btnExportZipPdf.addEventListener('click', () => runExportAllJob(true));
+}
+
+// ---------- Xuất 1 bài ----------
+$('#btnExportOne').addEventListener('click', async () => {
+  saveCurrentFormIntoState();
+  if (!confirmIfMissing([CURRENT])) return;
+  
+  const btn = $('#btnExportOne');
+  btn.disabled = true;
+  btn.textContent = 'Đang xuất...';
+  
+  try {
+    const res = await fetch('/api/export_native', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values: LECTURES[CURRENT] }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || 'Lỗi khi xuất file.');
+      return;
+    }
+    if (data.success) {
+      alert(data.message);
+    }
+  } catch (e) {
+    alert('Lỗi kết nối: ' + e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="icon">💾</span> Xuất 1 bài này';
   }
 });
 

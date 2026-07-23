@@ -1,9 +1,9 @@
 [Setup]
 AppName=AppBGM
-AppVersion=1.2
+AppVersion=1.3
 DefaultDirName={autopf}\AppBGM
 DefaultGroupName=AppBGM
-OutputBaseFilename=AppBGM_v1.2_Setup_x64
+OutputBaseFilename=AppBGM_v1.3_Setup_x64
 Compression=lzma
 SolidCompression=yes
 PrivilegesRequired=lowest
