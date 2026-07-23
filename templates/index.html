@@ -39,28 +39,6 @@
       <div id="warnBox" class="warn-box" hidden></div>
     </section>
 
-    <div class="stepper-ui">
-      <div class="step-item step-done">
-        <span class="step-num">1</span>
-        <span class="step-text">Chuẩn bị File</span>
-      </div>
-      <div class="step-divider"></div>
-      <div class="step-item step-done">
-        <span class="step-num">2</span>
-        <span class="step-text">Nạp Dữ liệu</span>
-      </div>
-      <div class="step-divider"></div>
-      <div class="step-item step-active">
-        <span class="step-num">3</span>
-        <span class="step-text">Chỉnh sửa</span>
-      </div>
-      <div class="step-divider"></div>
-      <div class="step-item">
-        <span class="step-num">4</span>
-        <span class="step-text">Xuất File</span>
-      </div>
-    </div>
-
     <div class="tab-filter-row" id="tabFilterRow" hidden>
       <input type="text" id="tabFilter" class="tab-filter" placeholder="Tìm bài giảng theo tên…">
       <button id="btnDuplicateLecture" class="btn btn-outline btn-sm" style="margin-left: 6px;" data-tip="Tạo bản sao từ bài giảng đang chọn">📋 Nhân bản</button>
@@ -70,12 +48,9 @@
       <p class="form-empty">Chọn file Excel ở trên rồi bấm "Nạp dữ liệu" để bắt đầu.</p>
     </div>
     <div class="form-actions">
-      <div class="form-actions-buttons" style="display: flex; flex-direction: column; gap: 6px;">
-        <div style="display: flex; gap: 6px;">
-          <button id="btnExportOne" class="btn btn-primary" style="flex:1;" disabled data-tip="Tải xuống bài giảng đang chọn dưới dạng file Word">Xuất bài này (.docx)</button>
-          <button id="btnExportAll" class="btn btn-outline" style="flex:1;" disabled data-tip="Tick chọn các bài giảng; bấm để đóng gói thành 1 file .zip Word">Xuất tất cả (.zip)</button>
-        </div>
-        <button id="btnExportZipPdf" class="btn btn-outline" style="width:100%;" disabled data-tip="Đóng gói tất cả bài giảng đã chọn thành file .zip chứa cả file Word (.docx) và PDF (.pdf)">📦 Xuất ZIP (Gồm Word & PDF)</button>
+      <div class="form-actions-buttons">
+        <button id="btnExportOne" class="btn btn-primary" style="flex:1;" disabled data-tip="Tải xuống bài giảng đang chọn dưới dạng file Word">Xuất bài này (.docx)</button>
+        <button id="btnExportAll" class="btn btn-outline" style="flex:1;" disabled data-tip="Tick chọn các bài giảng; bấm để đóng gói thành 1 file .zip Word">Xuất tất cả (.zip)</button>
       </div>
       <div class="export-progress" id="exportProgress" hidden>
         <span class="spinner"></span>
