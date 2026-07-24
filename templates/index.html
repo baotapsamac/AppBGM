@@ -3,20 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AppBGM</title>
+<title>AppBGM v1.6</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>
-<link rel="stylesheet" href="/static/style.css?v=3">
+<link rel="stylesheet" href="/static/style.css?v=4">
 <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
 </head>
 <body>
 
 <header class="topbar">
   <div class="topbar-title">
-    <h1>Công cụ tạo bài giảng v1.4</h1>
+    <h1>AppBGM v1.6</h1>
   </div>
   <div class="mode-switcher" style="display: flex; gap: 4px; background: rgba(255,255,255,0.15); padding: 3px; border-radius: 6px;">
-    <button id="btnViewForm" class="btn btn-sm btn-mode active" style="background:#fff; color:var(--navy); font-weight:bold;" data-tip="Chế độ Form nhập chi tiết & Xem trước PDF">📑 Xem Chi Tiết & PDF</button>
-    <button id="btnViewMatrix" class="btn btn-sm btn-mode" style="background:transparent; color:#fff;" data-tip="Chế độ Bảng tính ma trận song song giống Excel">📊 Bảng Soạn Bài Giảng</button>
+    <button id="btnViewMatrix" class="btn btn-sm btn-mode" style="background:transparent; color:#fff;" data-tip="Chế độ Bảng tính ma trận song song giống Excel">📊 Soạn bài giảng</button>
+    <button id="btnViewForm" class="btn btn-sm btn-mode active" style="background:#fff; color:var(--navy); font-weight:bold;" data-tip="Chế độ Form nhập chi tiết & Xem trước PDF">📑 Xem và kiểm tra</button>
   </div>
   <div class="topbar-right">
     <button id="btnHints" class="hint-toggle" data-tip="Bật/tắt phần chú thích hướng dẫn cho các nút trong công cụ" aria-pressed="true">💡 Hướng dẫn</button>
@@ -27,26 +27,26 @@
 <main class="workspace" id="mainWorkspace">
   <aside class="panel-form" id="panelForm">
     <section class="uploader" id="uploader">
-      <div style="display: flex; gap: 6px;">
-        <button id="dropXlsx" class="btn btn-outline btn-sm" style="flex:1" data-tip="Bấm để nạp file dữ liệu Excel sẵn có từ máy tính">📂 Nạp file dữ liệu Excel</button>
-        <button id="btnExportData" class="btn btn-outline btn-sm" style="flex:1" data-tip="Xuất toàn bộ dữ liệu bài giảng vừa nhập ra file Excel để lưu trữ và nạp lại sau này">💾 Lưu file dữ liệu (.xlsx)</button>
+      <!-- HÀNG 1: Quản lý Bài giảng Excel -->
+      <div style="display: flex; gap: 4px;">
+        <button id="dropXlsx" class="btn btn-outline btn-sm" style="flex:1" data-tip="Tải file Excel dữ liệu bài giảng lên hệ thống">📂 Nạp Bài giảng</button>
+        <button id="btnExportData" class="btn btn-outline btn-sm" style="flex:1" data-tip="Xuất toàn bộ bài giảng ra file Excel (.xlsx) để lưu trữ">💾 Xuất bài giảng</button>
+        <button id="btnDownloadTemplate" class="btn btn-outline btn-sm" style="flex:1" data-tip="Tải file Excel mẫu được định dạng chuẩn">📥 Tải mẫu BG</button>
       </div>
-      <div style="display: flex; gap: 6px; margin-top: 4px;">
-        <button id="btnDownloadTemplate" class="btn btn-outline btn-sm" style="flex:1" data-tip="Tải file Excel mẫu được định dạng chuẩn">Tải file mẫu Excel</button>
-        <button id="btnSavePreset" class="btn btn-outline btn-sm" style="flex:1" data-tip="Lưu các thông tin đơn vị & người phê duyệt làm mẫu mặc định">💾 Lưu Mẫu Thông Tin</button>
-        <button id="btnLoadPreset" class="btn btn-outline btn-sm" style="flex:1" data-tip="Nạp thông tin đơn vị & người phê duyệt đã lưu trước đó">📂 Tải Mẫu Thông Tin</button>
+      <!-- HÀNG 2: Quản lý Thông tin Hành chính (Phần I) -->
+      <div style="display: flex; gap: 4px; margin-top: 4px;">
+        <button id="btnSavePreset" class="btn btn-outline btn-sm" style="flex:1" data-tip="Ghi lại toàn bộ thông tin Phần I ra file mẫu (.txt)">💾 Lưu Thông tin</button>
+        <button id="btnLoadPreset" class="btn btn-outline btn-sm" style="flex:1" data-tip="Nạp dữ liệu Phần I mới từ file mẫu (.txt)">📂 Thay thông tin</button>
       </div>
       <div id="warnBox" class="warn-box" hidden></div>
     </section>
-
-    <div class="tab-filter-row" id="tabFilterRow" hidden>
-      <input type="text" id="tabFilter" class="tab-filter" placeholder="Tìm bài giảng theo tên…">
-      <button id="btnDuplicateLecture" class="btn btn-outline btn-sm" style="margin-left: 6px;" data-tip="Tạo bản sao từ bài giảng đang chọn">📋 Nhân bản</button>
-    </div>
     
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 4px; padding: 0 4px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-top: 4px; padding: 0 4px;">
       <div class="lecture-tabs" id="lectureTabs" style="flex:1;"></div>
-      <button id="btnAddLecture" class="btn btn-primary btn-sm btn-icon-add" data-tip="Tạo thêm 1 bài giảng mới" title="Thêm bài giảng mới">➕</button>
+      <div style="display: flex; gap: 3px; flex-shrink: 0;">
+        <button id="btnAddLecture" class="btn btn-primary btn-sm btn-icon-add" data-tip="Tạo thêm 1 bài giảng mới" title="Thêm bài giảng mới">➕</button>
+        <button id="btnDuplicateLecture" class="btn btn-outline btn-sm btn-icon-add" data-tip="Tạo bản sao từ bài giảng đang chọn" title="Nhân bản bài giảng">📑</button>
+      </div>
     </div>
 
     <div class="form-scroll" id="fieldForm">
@@ -69,8 +69,7 @@
 
   <section class="panel-matrix" id="panelMatrix" style="display:none; flex:1; background:#fff; overflow:auto; padding:16px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-      <h3 style="margin:0; color:var(--navy);">📊 Bảng Soạn Bài Giảng Song Song (Ma Trận Excel)</h3>
-      <button id="btnAddLectureMatrix" class="btn btn-primary btn-sm">➕ Thêm bài mới</button>
+      <h3 style="margin:0; color:var(--navy);">📊 Soạn Bài Giảng</h3>
     </div>
     <div id="matrixTableWrapper"></div>
   </section>
@@ -100,6 +99,8 @@
     <div class="menu-item" id="ctxClear">🧹 Xóa sạch nội dung ô này</div>
   </div>
 
-  <script src="/static/script.js?v=9"></script>
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="/static/script.js?v=10"></script>
 </body>
 </html>

@@ -97,15 +97,99 @@ function applyDataset(data, statusMsg) {
   updatePreview();
 }
 
-// ---------- Tự động nạp dữ liệu mặc định khi vừa mở App ----------
+// ---------- Toast Notification System ----------
+function showToast(message, type = 'info', duration = 3000) {
+  const container = $('#toastContainer') || document.body;
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+
+  let icon = 'ℹ️';
+  if (type === 'success') icon = '✅';
+  if (type === 'warning') icon = '⚠️';
+
+  toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+// ---------- Auto-Session Restore ----------
+function saveWorkspaceSession() {
+  try {
+    const sessionData = {
+      FIELDS,
+      LECTURES,
+      LECTURE_ORDER,
+      CURRENT,
+      SELECTED_FOR_EXPORT: Array.from(SELECTED_FOR_EXPORT)
+    };
+    localStorage.setItem('APPBGM_SESSION_V16', JSON.stringify(sessionData));
+  } catch (e) {
+    console.error('Save session error:', e);
+  }
+}
+
+function restoreWorkspaceSession() {
+  try {
+    const raw = localStorage.getItem('APPBGM_SESSION_V16');
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data || !data.LECTURE_ORDER || !data.LECTURE_ORDER.length || !data.LECTURES) return false;
+
+    if (data.FIELDS) FIELDS = data.FIELDS;
+    LECTURES = data.LECTURES;
+    LECTURE_ORDER = data.LECTURE_ORDER;
+    CURRENT = data.CURRENT && LECTURES[data.CURRENT] ? data.CURRENT : LECTURE_ORDER[0];
+    SELECTED_FOR_EXPORT = new Set(data.SELECTED_FOR_EXPORT || LECTURE_ORDER);
+
+    renderTabs();
+    renderForm();
+    if ($('#btnExportOne')) $('#btnExportOne').disabled = false;
+    if ($('#btnDirectEdit')) $('#btnDirectEdit').disabled = false;
+    updateExportAllLabel();
+    $('#statusBox').textContent = `Đã khôi phục ${LECTURE_ORDER.length} bài giảng · ${FIELDS.length} trường`;
+    $('#statusBox').classList.add('ready');
+    updatePreview();
+
+    showToast('Đã tự động khôi phục phiên làm việc gần nhất!', 'success');
+    return true;
+  } catch (e) {
+    console.error('Restore session error:', e);
+    return false;
+  }
+}
+
+// ---------- Phím Tắt Nhanh (Keyboard Shortcuts) ----------
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+    const key = e.key.toLowerCase();
+    if (key === 's') {
+      e.preventDefault();
+      if ($('#btnExportData')) $('#btnExportData').click();
+    } else if (key === 'n') {
+      e.preventDefault();
+      if ($('#btnAddLecture')) $('#btnAddLecture').click();
+    } else if (key === 'd') {
+      e.preventDefault();
+      if ($('#btnDuplicateLecture')) $('#btnDuplicateLecture').click();
+    }
+  }
+});
+
+// ---------- Tự động nạp dữ liệu mặc định hoặc khôi phục phiên ----------
 window.addEventListener('DOMContentLoaded', async () => {
+  const restored = restoreWorkspaceSession();
+  if (restored) return;
+
   try {
     const res = await fetch('/api/init_default_data');
     if (res.ok) {
       const data = await res.json();
       applyDataset(data, 'Đã sẵn sàng chỉnh sửa dữ liệu bài giảng');
-      $('#nameXlsx').textContent = 'Đã nạp dữ liệu mặc định (Bấm để chọn file khác)';
-      $('#dropXlsx').classList.add('filled');
     }
   } catch (e) {
     console.log('Init default data notice:', e);
@@ -113,110 +197,36 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ---------- Chọn file ----------
-$('#dropXlsx').addEventListener('click', async () => {
-  const nameEl = $('#nameXlsx');
-  nameEl.textContent = 'Đang mở hộp thoại...';
-  try {
-    const res = await fetch('/api/open_excel_native', { method: 'POST' });
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.error || 'Lỗi không xác định');
-      nameEl.textContent = 'Bấm để chọn file Excel dữ liệu…';
-      return;
-    }
-    
-    if (!data.success) {
-      // User cancelled
-      nameEl.textContent = 'Bấm để chọn file Excel dữ liệu…';
-      return;
-    }
-
-    nameEl.textContent = 'Đã nạp file dữ liệu';
-    $('#dropXlsx').classList.add('filled');
-    applyDataset(data, `Đã nạp ${data.lecture_order.length} bài giảng từ file Excel`);
-  } catch (e) {
-    alert('Lỗi kết nối: ' + e);
-    nameEl.textContent = 'Bấm để chọn file Excel dữ liệu…';
-  }
-});
-
-// ---------- Nạp dữ liệu ----------
-async function triggerUpload(file) {
-  const fd = new FormData();
-  fd.append('xlsx', file);
-
-  const nameEl = $('#nameXlsx');
-  nameEl.textContent = 'Đang nạp…';
-  try {
-    const res = await fetch('/api/upload_native', { method: 'POST', body: fd });
-    const data = await res.json();
-    if (!res.ok) { alert(data.error || 'Lỗi không xác định'); return; }
-
-    FIELDS = data.fields;
-    LECTURES = data.lectures;
-    
-    // Tự động chuẩn hóa toàn bộ dữ liệu vừa nạp từ Excel
-    for (const lectureName in LECTURES) {
-      const lectureData = LECTURES[lectureName];
-      for (const fieldName in lectureData) {
-        if (shouldAutoPunctuate(fieldName) && lectureData[fieldName]) {
-          lectureData[fieldName] = autoPunctuate(String(lectureData[fieldName]));
-        }
+if ($('#dropXlsx')) {
+  $('#dropXlsx').addEventListener('click', async () => {
+    try {
+      const res = await fetch('/api/open_excel_native', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Lỗi không xác định', 'warning');
+        return;
       }
+
+      if (!data.success) return;
+
+      if ($('#dropXlsx')) $('#dropXlsx').classList.add('filled');
+      applyDataset(data, `Đã nạp ${data.lecture_order.length} bài giảng từ file Excel`);
+      showToast(`Đã nạp thành công ${data.lecture_order.length} bài giảng!`, 'success');
+      saveWorkspaceSession();
+    } catch (e) {
+      showToast('Lỗi kết nối: ' + e, 'warning');
     }
-    
-    LECTURE_ORDER = data.lecture_order;
-    CURRENT = LECTURE_ORDER[0];
-    SELECTED_FOR_EXPORT = new Set(LECTURE_ORDER);
-    TAB_FILTER = '';
-    $('#tabFilter').value = '';
-
-    renderWarnings(data.warnings);
-    renderTabs();
-    renderForm();
-    $('#btnExportOne').disabled = false;
-    if ($('#btnDirectEdit')) $('#btnDirectEdit').disabled = false;
-    updateExportAllLabel();
-    $('#statusBox').textContent = `Đã nạp ${LECTURE_ORDER.length} bài giảng · ${FIELDS.length} trường`;
-    $('#statusBox').classList.add('ready');
-    updatePreview();
-  } catch (e) {
-    alert('Không kết nối được tới server: ' + e);
-  } finally {
-    nameEl.textContent = file.name;
-  }
-}
-
-function renderWarnings(w) {
-  const box = $('#warnBox');
-  const msgs = [];
-  if (w.thieu_trong_excel.length) {
-    msgs.push(`<b>Excel còn thiếu ${w.thieu_trong_excel.length} trường</b> mà mẫu Word cần: ${w.thieu_trong_excel.join(', ')}.`);
-  }
-  if (w.thua_trong_excel.length) {
-    msgs.push(`<b>Excel có ${w.thua_trong_excel.length} trường thừa</b>, không thấy trong mẫu Word: ${w.thua_trong_excel.join(', ')}.`);
-  }
-  if (msgs.length) {
-    box.innerHTML = msgs.join('<br>');
-    box.hidden = false;
-  } else {
-    box.hidden = true;
-  }
+  });
 }
 
 // ---------- Tabs bài giảng ----------
 function renderTabs() {
   const wrap = $('#lectureTabs');
-  const filterRow = $('#tabFilterRow');
-  filterRow.hidden = LECTURE_ORDER.length <= TAB_FILTER_THRESHOLD;
+  if (!wrap) return;
 
   wrap.innerHTML = '';
-  const needle = TAB_FILTER.trim().toLowerCase();
-  const filtered = needle
-    ? LECTURE_ORDER.filter((name) => name.toLowerCase().includes(needle))
-    : LECTURE_ORDER;
 
-  filtered.forEach((name) => {
+  LECTURE_ORDER.forEach((name) => {
     const t = document.createElement('div');
     t.className = 'tab' + (name === CURRENT ? ' active' : '');
     t.dataset.tip = `Bấm để chuyển sang xem/sửa bài giảng "${name}"`;
@@ -230,6 +240,7 @@ function renderTabs() {
       e.stopPropagation();
       if (cb.checked) SELECTED_FOR_EXPORT.add(name); else SELECTED_FOR_EXPORT.delete(name);
       updateExportAllLabel();
+      saveWorkspaceSession();
     });
     t.appendChild(cb);
 
@@ -243,23 +254,19 @@ function renderTabs() {
       renderTabs();
       renderForm();
       updatePreview();
+      saveWorkspaceSession();
     });
     wrap.appendChild(t);
   });
 
-  if (!filtered.length) {
+  if (!LECTURE_ORDER.length) {
     const empty = document.createElement('div');
     empty.className = 'tab-empty';
-    empty.textContent = 'Không tìm thấy bài giảng nào khớp.';
+    empty.textContent = 'Chưa có bài giảng nào.';
     wrap.appendChild(empty);
   }
   applyHints();
 }
-
-$('#tabFilter').addEventListener('input', () => {
-  TAB_FILTER = $('#tabFilter').value;
-  renderTabs();
-});
 
 function updateExportAllLabel() {
   const btn = $('#btnExportAll');
