@@ -307,16 +307,18 @@ function renderForm() {
   let currentSecDiv = null;
   let currentGridDiv = null;
 
+  let currentSecIdx = -1;
   FIELDS.forEach((f) => {
-    const secDef = SECTION_DEFINITIONS.find(s => s.firstField === f.name);
-    if (secDef) {
+    const secDefIdx = SECTION_DEFINITIONS.findIndex(s => s.firstField === f.name);
+    if (secDefIdx !== -1) {
+      currentSecIdx = secDefIdx;
       currentSecDiv = document.createElement('div');
       currentSecDiv.className = 'form-section';
 
       const secHeader = document.createElement('div');
       secHeader.className = 'form-section-header';
       secHeader.innerHTML = `
-        <span class="sec-title">${secDef.title}</span>
+        <span class="sec-title">${SECTION_DEFINITIONS[secDefIdx].title}</span>
         <span class="sec-arrow">▼</span>
       `;
       secHeader.addEventListener('click', () => {
@@ -344,7 +346,8 @@ function renderForm() {
     label.textContent = (f.kind === 'number' && f.name.startsWith('Thời gian')) ? `${f.name} (phút)` : f.name;
     labelRow.appendChild(label);
 
-    if (!isFull || PRESET_FIELDS.includes(f.name)) {
+    // CHỈ HIỂN THỊ NÚT ⏩ Ở NHÓM I (Thông tin hành chính & Phê duyệt)
+    if (currentSecIdx === 0) {
       const btnSync = document.createElement('button');
       btnSync.type = 'button';
       btnSync.className = 'btn-sync-field';
@@ -669,6 +672,150 @@ if (btnDuplicate) {
     selectTab(copyName);
     alert(`Đã nhân bản bài giảng: "${copyName}"`);
   });
+}
+
+// ---------- Thêm bài giảng mới ----------
+function addNewLecture() {
+  saveCurrentFormIntoState();
+  let baseName = "Bài giảng mới";
+  let newName = baseName;
+  let count = 1;
+  while (LECTURES[newName]) {
+    count++;
+    newName = `${baseName} ${count}`;
+  }
+
+  const prevLecture = CURRENT ? LECTURES[CURRENT] : {};
+  const newLectureData = {};
+  FIELDS.forEach((f) => {
+    if (PRESET_FIELDS.includes(f.name) || f.name.startsWith('Tên khoa') || f.name.startsWith('Tên học phần')) {
+      newLectureData[f.name] = prevLecture[f.name] || '';
+    } else {
+      newLectureData[f.name] = '';
+    }
+  });
+
+  newLectureData['Tên bài giảng'] = newName;
+  LECTURES[newName] = newLectureData;
+  LECTURE_ORDER.push(newName);
+  SELECTED_FOR_EXPORT.add(newName);
+
+  renderTabs();
+  selectTab(newName);
+  if ($('#panelMatrix') && $('#panelMatrix').style.display !== 'none') {
+    renderMatrixView();
+  }
+}
+
+if ($('#btnAddLecture')) $('#btnAddLecture').addEventListener('click', addNewLecture);
+if ($('#btnAddLectureMatrix')) $('#btnAddLectureMatrix').addEventListener('click', addNewLecture);
+
+// ---------- Mode Switcher (Xem chi tiết vs Bảng Excel) ----------
+const btnViewForm = $('#btnViewForm');
+const btnViewMatrix = $('#btnViewMatrix');
+const panelForm = $('#panelForm');
+const panelMatrix = $('#panelMatrix');
+const panelPreview = document.querySelector('.panel-preview');
+
+if (btnViewForm && btnViewMatrix) {
+  btnViewForm.addEventListener('click', () => {
+    btnViewForm.classList.add('active');
+    btnViewForm.style.background = '#fff';
+    btnViewForm.style.color = 'var(--navy)';
+    btnViewForm.style.fontWeight = 'bold';
+
+    btnViewMatrix.classList.remove('active');
+    btnViewMatrix.style.background = 'transparent';
+    btnViewMatrix.style.color = '#fff';
+
+    panelForm.style.display = 'flex';
+    if (panelPreview) panelPreview.style.display = 'flex';
+    panelMatrix.style.display = 'none';
+
+    renderForm();
+    updatePreview();
+  });
+
+  btnViewMatrix.addEventListener('click', () => {
+    saveCurrentFormIntoState();
+
+    btnViewMatrix.classList.add('active');
+    btnViewMatrix.style.background = '#fff';
+    btnViewMatrix.style.color = 'var(--navy)';
+    btnViewMatrix.style.fontWeight = 'bold';
+
+    btnViewForm.classList.remove('active');
+    btnViewForm.style.background = 'transparent';
+    btnViewForm.style.color = '#fff';
+
+    panelForm.style.display = 'none';
+    if (panelPreview) panelPreview.style.display = 'none';
+    panelMatrix.style.display = 'block';
+
+    renderMatrixView();
+  });
+}
+
+function renderMatrixView() {
+  const wrap = $('#matrixTableWrapper');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+
+  const table = document.createElement('table');
+  table.className = 'matrix-table';
+
+  const thead = document.createElement('thead');
+  const trHead = document.createElement('tr');
+  trHead.innerHTML = `<th class="field-name-col">Tên Trường Thông Tin</th>`;
+
+  LECTURE_ORDER.forEach((lName) => {
+    const th = document.createElement('th');
+    th.textContent = lName;
+    trHead.appendChild(th);
+  });
+  thead.appendChild(trHead);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  FIELDS.forEach((f) => {
+    const tr = document.createElement('tr');
+    const tdName = document.createElement('td');
+    tdName.className = 'field-name-col';
+    tdName.textContent = f.name;
+    tr.appendChild(tdName);
+
+    LECTURE_ORDER.forEach((lName) => {
+      const td = document.createElement('td');
+      const textarea = document.createElement('textarea');
+      const val = (LECTURES[lName] && LECTURES[lName][f.name]) ?? '';
+      textarea.value = val;
+
+      textarea.addEventListener('input', (e) => {
+        if (!LECTURES[lName]) LECTURES[lName] = {};
+        LECTURES[lName][f.name] = e.target.value;
+        autoResizeTextarea(textarea);
+      });
+      textarea.addEventListener('blur', (e) => {
+        if (shouldAutoPunctuate(f.name)) {
+          const fixed = autoPunctuate(textarea.value);
+          if (fixed !== textarea.value) {
+            textarea.value = fixed;
+            LECTURES[lName][f.name] = fixed;
+            autoResizeTextarea(textarea);
+          }
+        }
+      });
+
+      td.appendChild(textarea);
+      tr.appendChild(td);
+      setTimeout(() => autoResizeTextarea(textarea), 0);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  wrap.appendChild(table);
 }
 
 // ---------- Hàm dùng chung xuất tất cả / xuất ZIP Word & PDF ----------

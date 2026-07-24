@@ -12,7 +12,11 @@
 
 <header class="topbar">
   <div class="topbar-title">
-    <h1>Công cụ tạo bài giảng</h1>
+    <h1>Công cụ tạo bài giảng v1.4</h1>
+  </div>
+  <div class="mode-switcher" style="display: flex; gap: 4px; background: rgba(255,255,255,0.15); padding: 3px; border-radius: 6px;">
+    <button id="btnViewForm" class="btn btn-sm btn-mode active" style="background:#fff; color:var(--navy); font-weight:bold;" data-tip="Chế độ Form nhập chi tiết & Xem trước PDF">📑 Xem Chi Tiết & PDF</button>
+    <button id="btnViewMatrix" class="btn btn-sm btn-mode" style="background:transparent; color:#fff;" data-tip="Chế độ Bảng tính ma trận song song giống Excel">📊 Bảng Soạn Bài Giảng</button>
   </div>
   <div class="topbar-right">
     <button id="btnHints" class="hint-toggle" data-tip="Bật/tắt phần chú thích hướng dẫn cho các nút trong công cụ" aria-pressed="true">💡 Hướng dẫn</button>
@@ -20,8 +24,8 @@
   </div>
 </header>
 
-<main class="workspace">
-  <aside class="panel-form">
+<main class="workspace" id="mainWorkspace">
+  <aside class="panel-form" id="panelForm">
     <section class="uploader" id="uploader">
       <div style="display: flex; gap: 6px;">
         <button id="dropXlsx" class="btn btn-outline btn-sm" style="flex:1" data-tip="Bấm để nạp file dữ liệu Excel sẵn có từ máy tính">📂 Nạp file dữ liệu Excel</button>
@@ -39,9 +43,14 @@
       <input type="text" id="tabFilter" class="tab-filter" placeholder="Tìm bài giảng theo tên…">
       <button id="btnDuplicateLecture" class="btn btn-outline btn-sm" style="margin-left: 6px;" data-tip="Tạo bản sao từ bài giảng đang chọn">📋 Nhân bản</button>
     </div>
-    <div class="lecture-tabs" id="lectureTabs"></div>
+    
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 4px;">
+      <div class="lecture-tabs" id="lectureTabs" style="flex:1;"></div>
+      <button id="btnAddLecture" class="btn btn-primary btn-sm" style="white-space: nowrap;" data-tip="Tạo thêm 1 bài giảng mới">➕ Thêm bài mới</button>
+    </div>
+
     <div class="form-scroll" id="fieldForm">
-      <p class="form-empty">Chọn file Excel ở trên rồi bấm "Nạp dữ liệu" để bắt đầu.</p>
+      <p class="form-empty">Đang nạp dữ liệu…</p>
     </div>
     <div class="form-actions">
       <div class="form-actions-buttons">
@@ -57,6 +66,14 @@
       Tác giả Nguyễn Mạnh Hùng - Khoa Vũ khí
     </div>
   </aside>
+
+  <section class="panel-matrix" id="panelMatrix" style="display:none; flex:1; background:#fff; overflow:auto; padding:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="margin:0; color:var(--navy);">📊 Bảng Soạn Bài Giảng Song Song (Ma Trận Excel)</h3>
+      <button id="btnAddLectureMatrix" class="btn btn-primary btn-sm">➕ Thêm bài mới</button>
+    </div>
+    <div id="matrixTableWrapper"></div>
+  </section>
 
   <section class="panel-preview">
     <div class="preview-toolbar">

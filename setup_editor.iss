@@ -1,9 +1,9 @@
 [Setup]
 AppName=AppBGM Editor
-AppVersion=1.3
-DefaultDirName={autopf}\AppBGM Editor
-DefaultGroupName=AppBGM Editor
-OutputBaseFilename=AppBGM_Editor_v1.3_Setup_x64
+AppVersion=1.4
+DefaultDirName={autopf}\AppBGM
+DefaultGroupName=AppBGM
+OutputBaseFilename=AppBGM_Editor_v1.4_Setup_x64
 Compression=lzma
 SolidCompression=yes
 PrivilegesRequired=lowest

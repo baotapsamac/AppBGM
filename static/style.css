@@ -61,6 +61,54 @@ body{
   gap:8px;
   flex-shrink:0;
 }
+.author-footer {
+  font-family: var(--sans);
+}
+
+/* Matrix Table Styling (Excel View) */
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+}
+.matrix-table th, .matrix-table td {
+  border: 1px solid var(--paper-line);
+  padding: 8px 10px;
+  vertical-align: top;
+}
+.matrix-table th {
+  background: var(--paper-bg);
+  color: var(--navy);
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-width: 300px;
+}
+.matrix-table td.field-name-col {
+  background: #F8F7F2;
+  font-weight: 600;
+  min-width: 220px;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+.matrix-table textarea {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13.5px;
+  resize: none;
+  overflow-y: hidden;
+}
+.matrix-table textarea:focus {
+  background: #fff;
+  border-color: var(--navy);
+  outline: none;
+  border-radius: 4px;
+}
 .hint-toggle{
   font-family:var(--sans);
   font-size:11px;
@@ -326,7 +374,7 @@ body{
 .field-row input[type=date],
 .field-row textarea{
   width:100%;
-  font-family:var(--sans);
+  font-family:'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   font-size:13.5px;
   padding:7px 9px;
   border:1px solid var(--paper-line);
@@ -337,11 +385,14 @@ body{
 .field-row textarea{
   resize:none;
   min-height:50px;
+  overflow-y:hidden;
+  line-height:1.45;
 }
 .field-row input:focus, .field-row textarea:focus{
   outline:none;
   border-color:var(--navy);
   background:#fff;
+  box-shadow: 0 0 0 2px rgba(10, 37, 64, 0.1);
 }
 .field-row.kind-date input{max-width:170px;}
 .field-row.kind-number input{max-width:110px;}
