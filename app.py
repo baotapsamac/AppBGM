@@ -214,6 +214,57 @@ def download_template_native():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/export_excel_data_native', methods=['POST'])
+def export_excel_data_native():
+    try:
+        data = request.json or {}
+        lectures = data.get('lectures', {})
+        lecture_order = data.get('lecture_order', [])
+        if not lectures or not lecture_order:
+            return jsonify({'error': 'Không có dữ liệu bài giảng để xuất.'}), 400
+
+        import webview
+        if not webview.windows:
+            return jsonify({'error': 'Không tìm thấy cửa sổ ứng dụng.'}), 400
+
+        file_types = ('Excel Files (*.xlsx)', 'All files (*.*)')
+        result = webview.windows[0].create_file_dialog(webview.SAVE_DIALOG, directory='', save_filename='DuLieu_BaiGiang_DaLuu.xlsx', file_types=file_types)
+
+        if not result or not result[0]:
+            return jsonify({'success': False, 'message': 'Đã hủy lưu file.'})
+
+        save_path = result[0]
+
+        import openpyxl
+        from openpyxl.styles import Protection, Font, Alignment
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "DuLieu"
+
+        fields = [f for f, _ in TEMPLATE_FIELDS_META]
+
+        for r_idx, f_name in enumerate(fields, start=1):
+            cell = ws.cell(row=r_idx, column=1, value=f_name)
+            cell.font = Font(bold=True)
+            cell.alignment = Alignment(vertical='center')
+
+        for c_idx, l_name in enumerate(lecture_order, start=2):
+            l_data = lectures.get(l_name, {})
+            for r_idx, f_name in enumerate(fields, start=1):
+                val = l_data.get(f_name, '')
+                cell = ws.cell(row=r_idx, column=c_idx, value=val)
+                cell.protection = Protection(locked=False)
+                cell.alignment = Alignment(wrap_text=True, vertical='top')
+
+        ws.protection.sheet = True
+        ws.protection.enable()
+
+        wb.save(save_path)
+        return jsonify({'success': True, 'message': f'Đã xuất và lưu dữ liệu {len(lecture_order)} bài giảng thành công tại:\n{save_path}'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 def _build_docx(lecture_values, out_path):
     merge.merge_docx(TEMPLATE_PATH, lecture_values, TEMPLATE_FIELDS_META, TEMPLATE_FIELD_FORMATS, out_path)
 

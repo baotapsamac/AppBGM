@@ -23,16 +23,12 @@
 <main class="workspace">
   <aside class="panel-form">
     <section class="uploader" id="uploader">
-      <div class="upload-row upload-row-single">
-        <div class="drop-compact" id="dropXlsx" style="cursor: pointer;" data-tip="Bấm để mở hộp thoại chọn file Excel dữ liệu.">
-          <span class="drop-compact-icon">X</span>
-          <span class="drop-compact-name" id="nameXlsx">Bấm để chọn file Excel dữ liệu…</span>
-        </div>
-      </div>
-      <div style="display: flex; gap: 6px; margin-top: 6px;">
-        <button id="btnDownloadTemplate" class="btn btn-outline btn-sm" style="flex:1" data-tip="Tải file Excel mẫu được định dạng chuẩn, chỉ cho phép nhập dữ liệu">Tải file mẫu Excel</button>
+      <div style="display: flex; gap: 6px;">
+        <button id="dropXlsx" class="btn btn-outline btn-sm" style="flex:1" data-tip="Bấm để nạp file dữ liệu Excel sẵn có từ máy tính">📂 Nạp file dữ liệu Excel</button>
+        <button id="btnExportData" class="btn btn-outline btn-sm" style="flex:1" data-tip="Xuất toàn bộ dữ liệu bài giảng vừa nhập ra file Excel để lưu trữ và nạp lại sau này">💾 Lưu file dữ liệu (.xlsx)</button>
       </div>
       <div style="display: flex; gap: 6px; margin-top: 4px;">
+        <button id="btnDownloadTemplate" class="btn btn-outline btn-sm" style="flex:1" data-tip="Tải file Excel mẫu được định dạng chuẩn">Tải file mẫu Excel</button>
         <button id="btnSavePreset" class="btn btn-outline btn-sm" style="flex:1" data-tip="Lưu các thông tin đơn vị & người phê duyệt làm mẫu mặc định">💾 Lưu Mẫu Thông Tin</button>
         <button id="btnLoadPreset" class="btn btn-outline btn-sm" style="flex:1" data-tip="Nạp thông tin đơn vị & người phê duyệt đã lưu trước đó">📂 Tải Mẫu Thông Tin</button>
       </div>

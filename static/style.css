@@ -259,10 +259,57 @@ body{
   padding: 8px 12px;
   border-radius: var(--radius);
   border-left: 4px solid var(--navy);
-  margin: 16px 0 10px;
+  margin: 14px 0 10px;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 .form-section-header:first-child{
   margin-top: 0;
+}
+.form-section-header .sec-arrow{
+  transition: transform 0.2s ease;
+  font-size: 11px;
+}
+.form-section.collapsed .form-section-header .sec-arrow{
+  transform: rotate(-90deg);
+}
+.form-section.collapsed .field-group-grid{
+  display: none !important;
+}
+
+.field-group-grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+  margin-bottom: 12px;
+}
+.field-row.full-width{
+  grid-column: 1 / -1;
+}
+
+.field-label-row{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.btn-sync-field{
+  background: #EAE8E1;
+  border: 1px solid var(--paper-line);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 1px 5px;
+  color: var(--ink);
+  transition: background 0.15s ease;
+}
+.btn-sync-field:hover{
+  background: var(--navy);
+  color: #fff;
 }
 .field-row{
   margin-bottom:14px;

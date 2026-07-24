@@ -274,13 +274,28 @@ function updateExportAllLabel() {
   btn.disabled = (n === 0);
 }
 
-const FIELD_SECTION_MAP = {
-  'Tên khoa': '🏛️ I. THÔNG TIN HÀNH CHÍNH & PHÊ DUYỆT',
-  'Mục đích': '🎯 II. MỤC ĐÍCH & YÊU CẦU BÀI GIẢNG',
-  'Nội dung bài giảng': '⏱️ III. NỘI DUNG & PHÂN BỔ THỜI GIAN',
-  'Tổ chức lớp học': '🏫 IV. TỔ CHỨC, PHƯƠNG PHÁP & VẬT CHẤT',
-  'Thời gian thực hành giảng bài': '📝 V. CHI TIẾT CÁC PHẦN GIẢNG BÀI'
-};
+const SECTION_DEFINITIONS = [
+  { title: '🏛️ I. THÔNG TIN HÀNH CHÍNH & PHÊ DUYỆT', firstField: 'Tên khoa' },
+  { title: '🎯 II. MỤC ĐÍCH & YÊU CẦU BÀI GIẢNG', firstField: 'Mục đích' },
+  { title: '⏱️ III. NỘI DUNG & PHÂN BỔ THỜI GIAN', firstField: 'Nội dung bài giảng' },
+  { title: '🏫 IV. TỔ CHỨC, PHƯƠNG PHÁP & VẬT CHẤT', firstField: 'Tổ chức lớp học' },
+  { title: '📝 V. CHI TIẾT CÁC PHẦN GIẢNG BÀI', firstField: 'Thời gian thực hành giảng bài' }
+];
+
+function isFullWidthField(name) {
+  const longFields = [
+    'Tên bài giảng',
+    'Cấp bậc, học vị, họ tên giảng viên biên soạn',
+    'Cấp bậc, học vị, họ tên người thông qua',
+    'Cấp bậc, học vị, họ tên người phê duyệt',
+    'Nhận xét phần nội dung bài giảng', 'Nhận xét phần thực hành giảng bài', 'Kết luận phê duyệt',
+    'Mục đích', 'Yêu cầu về kiến thức', 'Yêu cầu về kỹ năng', 'Mức tự chủ và trách nhiệm',
+    'Nội dung bài giảng', 'Phương pháp của giảng viên', 'Phương pháp của học viên',
+    'Vật chất bảo đảm của giảng viên', 'Vật chất bảo đảm của học viên',
+    'Nội dung mở đầu bài giảng', 'Nội dung kết luận bài giảng', 'Nội dung kết thúc giảng bài'
+  ];
+  return longFields.includes(name);
+}
 
 // ---------- Form dữ liệu ----------
 function renderForm() {
@@ -289,22 +304,66 @@ function renderForm() {
   const values = LECTURES[CURRENT] || {};
   const rowByField = {};
 
+  let currentSecDiv = null;
+  let currentGridDiv = null;
+
   FIELDS.forEach((f) => {
-    if (FIELD_SECTION_MAP[f.name]) {
+    const secDef = SECTION_DEFINITIONS.find(s => s.firstField === f.name);
+    if (secDef) {
+      currentSecDiv = document.createElement('div');
+      currentSecDiv.className = 'form-section';
+
       const secHeader = document.createElement('div');
       secHeader.className = 'form-section-header';
-      secHeader.textContent = FIELD_SECTION_MAP[f.name];
-      wrap.appendChild(secHeader);
+      secHeader.innerHTML = `
+        <span class="sec-title">${secDef.title}</span>
+        <span class="sec-arrow">▼</span>
+      `;
+      secHeader.addEventListener('click', () => {
+        currentSecDiv.classList.toggle('collapsed');
+      });
+      currentSecDiv.appendChild(secHeader);
+
+      currentGridDiv = document.createElement('div');
+      currentGridDiv.className = 'field-group-grid';
+      currentSecDiv.appendChild(currentGridDiv);
+
+      wrap.appendChild(currentSecDiv);
     }
 
     const row = document.createElement('div');
-    row.className = `field-row kind-${f.kind}`;
+    const isFull = isFullWidthField(f.name);
+    row.className = `field-row kind-${f.kind} ${isFull ? 'full-width' : ''}`;
     rowByField[f.name] = row;
+
+    const labelRow = document.createElement('div');
+    labelRow.className = 'field-label-row';
 
     const label = document.createElement('label');
     label.className = 'field-label';
     label.textContent = (f.kind === 'number' && f.name.startsWith('Thời gian')) ? `${f.name} (phút)` : f.name;
-    row.appendChild(label);
+    labelRow.appendChild(label);
+
+    if (!isFull || PRESET_FIELDS.includes(f.name)) {
+      const btnSync = document.createElement('button');
+      btnSync.type = 'button';
+      btnSync.className = 'btn-sync-field';
+      btnSync.textContent = '⏩ Áp dụng tất cả';
+      btnSync.title = `Sao chép thông tin "${f.name}" sang tất cả bài giảng`;
+      btnSync.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const inputEl = row.querySelector('[data-field]');
+        const val = inputEl ? inputEl.value : (values[f.name] || '');
+        for (const lName in LECTURES) {
+          LECTURES[lName][f.name] = val;
+        }
+        alert(`Đã áp dụng thông tin "${f.name}" cho tất cả ${LECTURE_ORDER.length} bài giảng!`);
+        queuePreview();
+      });
+      labelRow.appendChild(btnSync);
+    }
+    row.appendChild(labelRow);
 
     let input;
     const raw = values[f.name] ?? '';
@@ -335,8 +394,6 @@ function renderForm() {
     input.spellcheck = false;
     input.setAttribute('lang', 'vi');
     input.setAttribute('autocomplete', 'off');
-    input.setAttribute('autocorrect', 'off');
-    input.setAttribute('autocapitalize', 'off');
     
     const onInputOrBlur = (e) => {
       lastEditedField = f.name;
@@ -360,7 +417,12 @@ function renderForm() {
       queuePreview();
     });
     row.appendChild(input);
-    wrap.appendChild(row);
+
+    if (currentGridDiv) {
+      currentGridDiv.appendChild(row);
+    } else {
+      wrap.appendChild(row);
+    }
     if (input.tagName === 'TEXTAREA') autoResizeTextarea(input);
   });
 
@@ -549,6 +611,38 @@ if (btnLoadPreset) {
     renderForm(CURRENT);
     queuePreview();
     alert('Đã nạp mẫu thông tin cố định thành công!');
+  });
+}
+
+// ---------- Xuất dữ liệu bài giảng ra file Excel để lưu trữ ----------
+const btnExportData = $('#btnExportData');
+if (btnExportData) {
+  btnExportData.addEventListener('click', async () => {
+    saveCurrentFormIntoState();
+    if (!LECTURE_ORDER.length) {
+      alert('Chưa có dữ liệu bài giảng để lưu.');
+      return;
+    }
+    btnExportData.disabled = true;
+    btnExportData.textContent = 'Đang xuất dữ liệu…';
+    try {
+      const res = await fetch('/api/export_excel_data_native', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lectures: LECTURES, lecture_order: LECTURE_ORDER })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Lỗi khi lưu dữ liệu.');
+      } else if (data.success) {
+        alert(data.message);
+      }
+    } catch (e) {
+      alert('Lỗi kết nối: ' + e);
+    } finally {
+      btnExportData.disabled = false;
+      btnExportData.textContent = '💾 Lưu file dữ liệu (.xlsx)';
+    }
   });
 }
 
