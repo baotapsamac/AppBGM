@@ -789,7 +789,8 @@ function addNewLecture() {
 
   renderTabs();
   selectTab(newName);
-  if ($('#panelMatrix') && $('#panelMatrix').style.display !== 'none') {
+  const mainWorkspace = $('#mainWorkspace') || document.querySelector('.workspace');
+  if (mainWorkspace && mainWorkspace.classList.contains('matrix-mode-active')) {
     renderMatrixView();
   }
 }
@@ -866,8 +867,43 @@ function renderMatrixView() {
   table.appendChild(thead);
 
   const tbody = document.createElement('tbody');
+  let currentSecIdx = -1;
+
   FIELDS.forEach((f) => {
+    const secDefIdx = SECTION_DEFINITIONS.findIndex(s => s.firstField === f.name);
+    if (secDefIdx !== -1) {
+      currentSecIdx = secDefIdx;
+      const secDef = SECTION_DEFINITIONS[secDefIdx];
+
+      const trGroup = document.createElement('tr');
+      trGroup.className = 'matrix-group-header';
+      trGroup.dataset.secIdx = secDefIdx;
+
+      const tdGroup = document.createElement('td');
+      tdGroup.colSpan = LECTURE_ORDER.length + 1;
+      tdGroup.innerHTML = `
+        <span class="group-toggle-icon">▼</span>
+        <span>${secDef.title}</span>
+      `;
+      trGroup.appendChild(tdGroup);
+      tbody.appendChild(trGroup);
+
+      trGroup.addEventListener('click', () => {
+        const isCollapsed = trGroup.classList.toggle('collapsed');
+        const rows = tbody.querySelectorAll(`.matrix-row-sec-${secDefIdx}`);
+        rows.forEach(r => {
+          r.style.display = isCollapsed ? 'none' : 'table-row';
+        });
+        const icon = trGroup.querySelector('.group-toggle-icon');
+        if (icon) icon.textContent = isCollapsed ? '▶' : '▼';
+      });
+    }
+
     const tr = document.createElement('tr');
+    if (currentSecIdx !== -1) {
+      tr.classList.add(`matrix-row-sec-${currentSecIdx}`);
+    }
+
     const tdName = document.createElement('td');
     tdName.className = 'field-name-col';
     tdName.textContent = f.name;

@@ -326,13 +326,23 @@ body{
   color:var(--ink-soft);
   padding:8px 4px;
 }
+.btn-icon-add {
+  padding: 0 !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  font-size: 14px !important;
+  border-radius: 6px !important;
+  flex-shrink: 0 !important;
+}
+
 .tab{
   display:flex;
   align-items:center;
-  gap:6px;
-  font-size:13px;
+  gap:5px;
+  font-size:12px;
   font-weight:600;
-  padding:9px 14px;
+  padding:6px 10px;
   border:1px solid var(--paper-line);
   border-bottom:none;
   border-radius:var(--radius) var(--radius) 0 0;
@@ -348,6 +358,34 @@ body{
   border-color:var(--navy);
   position:relative;
   top:1px;
+}
+
+/* Matrix View Section Group Headers */
+.matrix-group-header td {
+  background: #EBF3FA !important;
+  color: var(--navy) !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  padding: 10px 14px !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  border-top: 2px solid var(--navy) !important;
+  border-bottom: 2px solid var(--navy) !important;
+  transition: background 0.15s ease;
+}
+.matrix-group-header:hover td {
+  background: #DCE8F5 !important;
+}
+.matrix-group-header .group-toggle-icon {
+  display: inline-block;
+  width: 16px;
+  font-size: 12px;
+  margin-right: 6px;
+  color: var(--navy);
+  transition: transform 0.2s ease;
+}
+.matrix-group-header.collapsed .group-toggle-icon {
+  transform: rotate(-90deg);
 }
 
 .form-scroll{

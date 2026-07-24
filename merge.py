@@ -72,30 +72,43 @@ def field_kind(name, fmt):
 # ---------------------------------------------------------------- Đọc xlsx --
 def read_lectures(xlsx_path):
     """
-    Cột A = tên trường (dừng đọc khi gặp dòng trống ở cột A).
-    Cột B, C, D... = mỗi cột một bài giảng. Tên bài giảng lấy ở dòng tiêu đề (row 1);
-    nếu để trống thì đặt tên mặc định "Bài giảng 1", "Bài giảng 2"...
+    Đọc dữ liệu bài giảng từ file Excel.
+    Hỗ trợ nạp cả file xuất từ AppBGM (có hàng tiêu đề nhóm và tô màu) và file Excel thông thường.
     """
     wb = load_workbook(xlsx_path, data_only=True)
     ws = wb.active
     max_col = ws.max_column
+    max_row = ws.max_row
+
+    SECTION_TITLES = [
+        'THÔNG TIN HÀNH CHÍNH', 'MỤC ĐÍCH & YÊU CẦU', 'NỘI DUNG & PHÂN BỔ',
+        'TỔ CHỨC, PHƯƠNG PHÁP', 'CHI TIẾT CÁC PHẦN', 'TÊN TRƯỜNG THÔNG TIN'
+    ]
 
     field_order = []
-    row = 2
-    while True:
-        v = ws.cell(row, 1).value
-        if v is None or str(v).strip() == '':
-            break
-        field_order.append(str(v).strip())
-        row += 1
-    last_row = row - 1
+    field_rows = []
+
+    for r in range(2, max_row + 1):
+        v = ws.cell(r, 1).value
+        if v is None:
+            continue
+        val_str = str(v).strip()
+        if not val_str:
+            continue
+        if any(st in val_str.upper() for st in SECTION_TITLES) or val_str.startswith(('🏛️', '🎯', '⏱️', '🏫', '📝')):
+            continue
+        if val_str not in field_order:
+            field_order.append(val_str)
+            field_rows.append((r, val_str))
 
     lectures = {}
     lecture_count = 1
     for col in range(2, max_col + 1):
+        header_val = ws.cell(1, col).value
+        col_name = str(header_val).strip() if header_val is not None else ''
+
         values = {}
-        for r in range(2, last_row + 1):
-            key = str(ws.cell(r, 1).value).strip()
+        for r, key in field_rows:
             cell = ws.cell(r, col)
             val = cell.value
             if isinstance(val, (datetime, date)):
@@ -104,11 +117,17 @@ def read_lectures(xlsx_path):
                 values[key] = ''
             else:
                 values[key] = str(val)
-        # bỏ qua cột hoàn toàn trống (không phải bài giảng thật)
+
         if any(str(v).strip() for v in values.values()):
-            name = 'Bài %d' % lecture_count
+            name = col_name if col_name and col_name != 'TÊN TRƯỜNG THÔNG TIN' else ('Bài %d' % lecture_count)
+            base_name = name
+            dup_idx = 1
+            while name in lectures:
+                dup_idx += 1
+                name = f"{base_name} ({dup_idx})"
             lectures[name] = values
             lecture_count += 1
+
     return field_order, lectures
 
 

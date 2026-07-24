@@ -236,25 +236,86 @@ def export_excel_data_native():
         save_path = result[0]
 
         import openpyxl
-        from openpyxl.styles import Protection, Font, Alignment
+        from openpyxl.styles import Protection, Font, Alignment, PatternFill, Border, Side
+        from openpyxl.utils import get_column_letter
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "DuLieu"
+        ws.title = "DuLieu_BaiGiang"
 
-        fields = [f for f, _ in TEMPLATE_FIELDS_META]
+        SECTION_DEFINITIONS = [
+            {'title': '🏛️ I. THÔNG TIN HÀNH CHÍNH & PHÊ DUYỆT', 'firstField': 'Tên khoa', 'color': 'D9E1F2'},
+            {'title': '🎯 II. MỤC ĐÍCH & YÊU CẦU BÀI GIẢNG', 'firstField': 'Mục đích', 'color': 'E2EFDA'},
+            {'title': '⏱️ III. NỘI DUNG & PHÂN BỔ THỜI GIAN', 'firstField': 'Nội dung bài giảng', 'color': 'FFF2CC'},
+            {'title': '🏫 IV. TỔ CHỨC, PHƯƠNG PHÁP & VẬT CHẤT', 'firstField': 'Tổ chức lớp học', 'color': 'F2DCDB'},
+            {'title': '📝 V. CHI TIẾT CÁC PHẦN GIẢNG BÀI', 'firstField': 'Thời gian thực hành giảng bài', 'color': 'EDF2F8'}
+        ]
 
-        for r_idx, f_name in enumerate(fields, start=1):
-            cell = ws.cell(row=r_idx, column=1, value=f_name)
-            cell.font = Font(bold=True)
-            cell.alignment = Alignment(vertical='center')
+        thin_border = Border(
+            left=Side(style='thin', color='D1D5DB'),
+            right=Side(style='thin', color='D1D5DB'),
+            top=Side(style='thin', color='D1D5DB'),
+            bottom=Side(style='thin', color='D1D5DB')
+        )
+
+        header_fill = PatternFill(start_color='1E3A8A', end_color='1E3A8A', fill_type='solid')
+        header_font = Font(name='Segoe UI', size=11, bold=True, color='FFFFFF')
+
+        ws.cell(row=1, column=1, value="TÊN TRƯỜNG THÔNG TIN").font = header_font
+        ws.cell(row=1, column=1).fill = header_fill
+        ws.cell(row=1, column=1).alignment = Alignment(horizontal='center', vertical='center')
+        ws.cell(row=1, column=1).border = thin_border
 
         for c_idx, l_name in enumerate(lecture_order, start=2):
-            l_data = lectures.get(l_name, {})
-            for r_idx, f_name in enumerate(fields, start=1):
+            cell = ws.cell(row=1, column=c_idx, value=l_name)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = thin_border
+
+        ws.row_dimensions[1].height = 28
+
+        fields = [f for f, _ in TEMPLATE_FIELDS_META]
+        current_row = 2
+
+        for f_name in fields:
+            sec = next((s for s in SECTION_DEFINITIONS if s['firstField'] == f_name), None)
+            if sec:
+                ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=len(lecture_order) + 1)
+                sec_cell = ws.cell(row=current_row, column=1, value=sec['title'])
+                sec_fill = PatternFill(start_color=sec['color'], end_color=sec['color'], fill_type='solid')
+                sec_cell.fill = sec_fill
+                sec_cell.font = Font(name='Segoe UI', size=11, bold=True, color='1E293B')
+                sec_cell.alignment = Alignment(vertical='center', horizontal='left')
+
+                for col in range(1, len(lecture_order) + 2):
+                    ws.cell(row=current_row, column=col).border = thin_border
+                    ws.cell(row=current_row, column=col).fill = sec_fill
+
+                ws.row_dimensions[current_row].height = 24
+                current_row += 1
+
+            name_cell = ws.cell(row=current_row, column=1, value=f_name)
+            name_cell.font = Font(name='Segoe UI', size=10, bold=True, color='334155')
+            name_cell.fill = PatternFill(start_color='F8FAFC', end_color='F8FAFC', fill_type='solid')
+            name_cell.alignment = Alignment(vertical='center', horizontal='left', wrap_text=True)
+            name_cell.border = thin_border
+
+            for c_idx, l_name in enumerate(lecture_order, start=2):
+                l_data = lectures.get(l_name, {})
                 val = l_data.get(f_name, '')
-                cell = ws.cell(row=r_idx, column=c_idx, value=val)
-                cell.protection = Protection(locked=False)
-                cell.alignment = Alignment(wrap_text=True, vertical='top')
+                val_cell = ws.cell(row=current_row, column=c_idx, value=val)
+                val_cell.font = Font(name='Segoe UI', size=10, color='0F172A')
+                val_cell.alignment = Alignment(vertical='top', horizontal='left', wrap_text=True)
+                val_cell.protection = Protection(locked=False)
+                val_cell.border = thin_border
+
+            ws.row_dimensions[current_row].height = 22
+            current_row += 1
+
+        ws.column_dimensions['A'].width = 45
+        for col_num in range(2, len(lecture_order) + 2):
+            col_letter = get_column_letter(col_num)
+            ws.column_dimensions[col_letter].width = 38
 
         ws.protection.sheet = True
         ws.protection.enable()
