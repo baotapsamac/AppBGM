@@ -630,28 +630,77 @@ if (btnSavePreset) {
         presetData[f] = LECTURES[CURRENT][f];
       }
     });
-    localStorage.setItem('APPBGM_PRESET', JSON.stringify(presetData));
-    alert('Đã lưu mẫu thông tin đơn vị & người phê duyệt/biên soạn thành công!');
+
+    let txtContent = "# APPBGM PRESET DATA FILE\n# File Mau Thong Tin Hanh Chinh & Phe Duyet\n\n";
+    for (const key in presetData) {
+      txtContent += `${key}=${String(presetData[key]).replace(/\n/g, '\\n')}\n`;
+    }
+
+    const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'Mau_ThongTin_BaiGiang.txt';
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    alert('Đã xuất file Mẫu Thông Tin thành công: "Mau_ThongTin_BaiGiang.txt"');
   });
 }
 
 const btnLoadPreset = $('#btnLoadPreset');
 if (btnLoadPreset) {
   btnLoadPreset.addEventListener('click', () => {
-    const saved = localStorage.getItem('APPBGM_PRESET');
-    if (!saved) {
-      alert('Chưa có mẫu thông tin nào được lưu trước đây.');
-      return;
-    }
-    const presetData = JSON.parse(saved);
-    if (!CURRENT || !LECTURES[CURRENT]) {
-      alert('Chưa chọn bài giảng để áp dụng mẫu.');
-      return;
-    }
-    Object.assign(LECTURES[CURRENT], presetData);
-    renderForm(CURRENT);
-    queuePreview();
-    alert('Đã nạp mẫu thông tin cố định thành công!');
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.txt';
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const text = evt.target.result;
+        const presetData = {};
+        const lines = text.split('\n');
+
+        lines.forEach((line) => {
+          line = line.trim();
+          if (!line || line.startsWith('#')) return;
+          const eqIdx = line.indexOf('=');
+          if (eqIdx !== -1) {
+            const key = line.substring(0, eqIdx).trim();
+            const val = line.substring(eqIdx + 1).replace(/\\n/g, '\n').trim();
+            presetData[key] = val;
+          }
+        });
+
+        if (Object.keys(presetData).length === 0) {
+          alert('File .txt không chứa dữ liệu mẫu hợp lệ.');
+          return;
+        }
+
+        const applyToAll = confirm('Bạn có muốn áp dụng Mẫu Thông Tin này cho TẤT CẢ các bài giảng hiện tại không?\n\n- Bấm OK (Đồng ý): Áp dụng cho TẤT CẢ bài giảng.\n- Bấm Cancel (Hủy): Chỉ áp dụng cho bài giảng hiện tại.');
+
+        if (applyToAll) {
+          for (const lName in LECTURES) {
+            Object.assign(LECTURES[lName], presetData);
+          }
+          alert(`Đã nạp và áp dụng Mẫu Thông Tin từ file .txt cho tất cả ${LECTURE_ORDER.length} bài giảng!`);
+        } else {
+          if (CURRENT && LECTURES[CURRENT]) {
+            Object.assign(LECTURES[CURRENT], presetData);
+            alert(`Đã nạp Mẫu Thông Tin cho bài giảng: "${CURRENT}"!`);
+          }
+        }
+
+        renderForm();
+        queuePreview();
+      };
+      reader.readAsText(file, 'UTF-8');
+    });
+
+    fileInput.click();
   });
 }
 
@@ -766,6 +815,9 @@ if (btnViewForm && btnViewMatrix) {
     btnViewMatrix.style.background = 'transparent';
     btnViewMatrix.style.color = '#fff';
 
+    const mainWorkspace = $('#mainWorkspace') || document.querySelector('.workspace');
+    if (mainWorkspace) mainWorkspace.classList.remove('matrix-mode-active');
+
     panelForm.style.display = 'flex';
     if (panelPreview) panelPreview.style.display = 'flex';
     panelMatrix.style.display = 'none';
@@ -786,13 +838,8 @@ if (btnViewForm && btnViewMatrix) {
     btnViewForm.style.background = 'transparent';
     btnViewForm.style.color = '#fff';
 
-    panelForm.style.display = 'none';
-    if (panelPreview) panelPreview.style.display = 'none';
-    panelMatrix.style.display = 'flex';
-    panelMatrix.style.flexDirection = 'column';
-    panelMatrix.style.flex = '1';
-    panelMatrix.style.width = '100%';
-    panelMatrix.style.height = '100%';
+    const mainWorkspace = $('#mainWorkspace') || document.querySelector('.workspace');
+    if (mainWorkspace) mainWorkspace.classList.add('matrix-mode-active');
 
     renderMatrixView();
   });
@@ -1104,8 +1151,10 @@ if ($('#btnCompleteEdit')) {
 // ---------- Custom Context Menu chuột phải cho tất cả các ô nhập liệu ----------
 let activeContextInput = null;
 let internalClipboard = "";
+const inputUndoHistoryMap = new Map(); // Lưu giá trị cũ trước khi sửa của từng ô
 
 const ctxMenu = $('#customContextMenu');
+const ctxUndo = $('#ctxUndo');
 const ctxCopy = $('#ctxCopy');
 const ctxPaste = $('#ctxPaste');
 const ctxSyncField = $('#ctxSyncField');
@@ -1118,11 +1167,23 @@ document.addEventListener('contextmenu', (e) => {
     activeContextInput = target;
 
     const x = Math.min(e.clientX, window.innerWidth - 240);
-    const y = Math.min(e.clientY, window.innerHeight - 200);
+    const y = Math.min(e.clientY, window.innerHeight - 220);
 
     ctxMenu.style.left = `${x}px`;
     ctxMenu.style.top = `${y}px`;
     ctxMenu.hidden = false;
+
+    // Kiểm tra xem ô này có lịch sử Undo không
+    if (ctxUndo) {
+      const hasHistory = inputUndoHistoryMap.has(activeContextInput) && inputUndoHistoryMap.get(activeContextInput).length > 0;
+      if (hasHistory) {
+        ctxUndo.style.opacity = '1';
+        ctxUndo.style.pointerEvents = 'auto';
+      } else {
+        ctxUndo.style.opacity = '0.5';
+        ctxUndo.style.pointerEvents = 'none';
+      }
+    }
   } else {
     if (ctxMenu) ctxMenu.hidden = true;
   }
@@ -1139,6 +1200,32 @@ document.addEventListener('keydown', (e) => {
     ctxMenu.hidden = true;
   }
 });
+
+function pushUndoState(inputEl) {
+  if (!inputEl) return;
+  if (!inputUndoHistoryMap.has(inputEl)) {
+    inputUndoHistoryMap.set(inputEl, []);
+  }
+  const history = inputUndoHistoryMap.get(inputEl);
+  history.push(inputEl.value);
+  if (history.length > 20) history.shift();
+}
+
+if (ctxUndo) {
+  ctxUndo.addEventListener('click', () => {
+    if (!activeContextInput) return;
+    if (inputUndoHistoryMap.has(activeContextInput)) {
+      const history = inputUndoHistoryMap.get(activeContextInput);
+      if (history.length > 0) {
+        const prevValue = history.pop();
+        activeContextInput.value = prevValue;
+        activeContextInput.dispatchEvent(new Event('input', { bubbles: true }));
+        if (activeContextInput.tagName === 'TEXTAREA') autoResizeTextarea(activeContextInput);
+      }
+    }
+    ctxMenu.hidden = true;
+  });
+}
 
 if (ctxCopy) {
   ctxCopy.addEventListener('click', async () => {
@@ -1157,8 +1244,9 @@ if (ctxCopy) {
 if (ctxPaste) {
   ctxPaste.addEventListener('click', async () => {
     if (!activeContextInput) return;
-    let pasteText = internalClipboard;
+    pushUndoState(activeContextInput);
 
+    let pasteText = internalClipboard;
     try {
       const clipText = await navigator.clipboard.readText();
       if (clipText) pasteText = clipText;
@@ -1186,7 +1274,7 @@ if (ctxSyncField) {
       alert(`Đã sao chép nội dung ô "${fieldName}" sang tất cả ${LECTURE_ORDER.length} bài giảng!`);
       queuePreview();
     } else {
-      alert('Đã đồng bộ ô hiện tại!');
+      alert('Đã đồng bộ nội dung ô hiện tại!');
     }
     ctxMenu.hidden = true;
   });
@@ -1195,6 +1283,7 @@ if (ctxSyncField) {
 if (ctxClear) {
   ctxClear.addEventListener('click', () => {
     if (!activeContextInput) return;
+    pushUndoState(activeContextInput);
     activeContextInput.value = '';
     activeContextInput.dispatchEvent(new Event('input', { bubbles: true }));
     if (activeContextInput.tagName === 'TEXTAREA') autoResizeTextarea(activeContextInput);
