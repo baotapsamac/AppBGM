@@ -312,25 +312,75 @@ function renderForm() {
     const secDefIdx = SECTION_DEFINITIONS.findIndex(s => s.firstField === f.name);
     if (secDefIdx !== -1) {
       currentSecIdx = secDefIdx;
-      currentSecDiv = document.createElement('div');
-      currentSecDiv.className = 'form-section';
+      const secDiv = document.createElement('div');
+      secDiv.className = 'form-section';
+
+      // Đặt mặc định Nhóm I (index 0) là Thu gọn (collapsed)
+      if (secDefIdx === 0) {
+        secDiv.classList.add('collapsed');
+      }
 
       const secHeader = document.createElement('div');
       secHeader.className = 'form-section-header';
-      secHeader.innerHTML = `
-        <span class="sec-title">${SECTION_DEFINITIONS[secDefIdx].title}</span>
-        <span class="sec-arrow">▼</span>
-      `;
-      secHeader.addEventListener('click', () => {
-        currentSecDiv.classList.toggle('collapsed');
+
+      if (secDefIdx === 0) {
+        // Nhóm I: Thêm 1 Nút Duy Nhất ở Header để áp dụng toàn bộ TT Hành Chính cho tất cả bài giảng!
+        secHeader.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="sec-title">${SECTION_DEFINITIONS[secDefIdx].title}</span>
+            <span class="sec-arrow">▼</span>
+          </div>
+          <button type="button" class="btn btn-xs btn-outline btn-sync-sec1" style="background:#fff; color:var(--navy); font-size:11px; padding:2px 8px; font-weight:600;" title="Sao chép toàn bộ Thông Tin Hành Chính sang tất cả các bài giảng">⏩ Đồng bộ TT Hành Chính cho tất cả bài</button>
+        `;
+
+        setTimeout(() => {
+          const btnSyncSec = secHeader.querySelector('.btn-sync-sec1');
+          if (btnSyncSec) {
+            btnSyncSec.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!CURRENT || !LECTURES[CURRENT]) return;
+
+              const sec1FieldNames = [];
+              for (const fieldObj of FIELDS) {
+                if (fieldObj.name === SECTION_DEFINITIONS[1].firstField) break;
+                sec1FieldNames.push(fieldObj.name);
+              }
+
+              for (const lName in LECTURES) {
+                sec1FieldNames.forEach((fn) => {
+                  if (fn !== 'Tên bài giảng') {
+                    LECTURES[lName][fn] = LECTURES[CURRENT][fn] || '';
+                  }
+                });
+              }
+              alert(`Đã áp dụng toàn bộ Thông Tin Hành Chính cho tất cả ${LECTURE_ORDER.length} bài giảng!`);
+              queuePreview();
+            });
+          }
+        }, 0);
+
+      } else {
+        secHeader.innerHTML = `
+          <span class="sec-title">${SECTION_DEFINITIONS[secDefIdx].title}</span>
+          <span class="sec-arrow">▼</span>
+        `;
+      }
+
+      // Independent Section Collapsible Toggle Handler
+      secHeader.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-sync-sec1')) return;
+        secDiv.classList.toggle('collapsed');
       });
-      currentSecDiv.appendChild(secHeader);
+
+      secDiv.appendChild(secHeader);
 
       currentGridDiv = document.createElement('div');
       currentGridDiv.className = 'field-group-grid';
-      currentSecDiv.appendChild(currentGridDiv);
+      secDiv.appendChild(currentGridDiv);
 
-      wrap.appendChild(currentSecDiv);
+      wrap.appendChild(secDiv);
+      currentSecDiv = secDiv;
     }
 
     const row = document.createElement('div');
@@ -345,27 +395,6 @@ function renderForm() {
     label.className = 'field-label';
     label.textContent = (f.kind === 'number' && f.name.startsWith('Thời gian')) ? `${f.name} (phút)` : f.name;
     labelRow.appendChild(label);
-
-    // CHỈ HIỂN THỊ NÚT ⏩ Ở NHÓM I (Thông tin hành chính & Phê duyệt)
-    if (currentSecIdx === 0) {
-      const btnSync = document.createElement('button');
-      btnSync.type = 'button';
-      btnSync.className = 'btn-sync-field';
-      btnSync.textContent = '⏩ Áp dụng tất cả';
-      btnSync.title = `Sao chép thông tin "${f.name}" sang tất cả bài giảng`;
-      btnSync.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const inputEl = row.querySelector('[data-field]');
-        const val = inputEl ? inputEl.value : (values[f.name] || '');
-        for (const lName in LECTURES) {
-          LECTURES[lName][f.name] = val;
-        }
-        alert(`Đã áp dụng thông tin "${f.name}" cho tất cả ${LECTURE_ORDER.length} bài giảng!`);
-        queuePreview();
-      });
-      labelRow.appendChild(btnSync);
-    }
     row.appendChild(labelRow);
 
     let input;
@@ -384,20 +413,26 @@ function renderForm() {
       input = document.createElement('textarea');
       input.value = raw;
       input.rows = 2;
-      input.addEventListener('input', () => {
-        autoResizeTextarea(input);
-        queuePreview();
-      });
     } else {
       input = document.createElement('input');
       input.type = 'text';
       input.value = raw;
     }
     input.dataset.field = f.name;
-    input.spellcheck = false;
+    input.spellcheck = true;
     input.setAttribute('lang', 'vi');
     input.setAttribute('autocomplete', 'off');
     
+    let isComposing = false;
+    input.addEventListener('compositionstart', () => { isComposing = true; });
+    input.addEventListener('compositionend', () => {
+      isComposing = false;
+      lastEditedField = f.name;
+      lastEditedText = input.value;
+      if (input.tagName === 'TEXTAREA') autoResizeTextarea(input);
+      queuePreview();
+    });
+
     const onInputOrBlur = (e) => {
       lastEditedField = f.name;
       lastEditedText = e.target.value;
@@ -416,8 +451,11 @@ function renderForm() {
       });
     }
     input.addEventListener('input', (e) => {
-      onInputOrBlur(e);
-      queuePreview();
+      if (input.tagName === 'TEXTAREA') autoResizeTextarea(input);
+      if (!isComposing) {
+        onInputOrBlur(e);
+        queuePreview();
+      }
     });
     row.appendChild(input);
 
@@ -750,7 +788,11 @@ if (btnViewForm && btnViewMatrix) {
 
     panelForm.style.display = 'none';
     if (panelPreview) panelPreview.style.display = 'none';
-    panelMatrix.style.display = 'block';
+    panelMatrix.style.display = 'flex';
+    panelMatrix.style.flexDirection = 'column';
+    panelMatrix.style.flex = '1';
+    panelMatrix.style.width = '100%';
+    panelMatrix.style.height = '100%';
 
     renderMatrixView();
   });
@@ -1056,6 +1098,107 @@ if ($('#btnCompleteEdit')) {
     } finally {
       if (spinner) spinner.hidden = true;
     }
+  });
+}
+
+// ---------- Custom Context Menu chuột phải cho tất cả các ô nhập liệu ----------
+let activeContextInput = null;
+let internalClipboard = "";
+
+const ctxMenu = $('#customContextMenu');
+const ctxCopy = $('#ctxCopy');
+const ctxPaste = $('#ctxPaste');
+const ctxSyncField = $('#ctxSyncField');
+const ctxClear = $('#ctxClear');
+
+document.addEventListener('contextmenu', (e) => {
+  const target = e.target;
+  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+    e.preventDefault();
+    activeContextInput = target;
+
+    const x = Math.min(e.clientX, window.innerWidth - 240);
+    const y = Math.min(e.clientY, window.innerHeight - 200);
+
+    ctxMenu.style.left = `${x}px`;
+    ctxMenu.style.top = `${y}px`;
+    ctxMenu.hidden = false;
+  } else {
+    if (ctxMenu) ctxMenu.hidden = true;
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (ctxMenu && !ctxMenu.contains(e.target)) {
+    ctxMenu.hidden = true;
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && ctxMenu) {
+    ctxMenu.hidden = true;
+  }
+});
+
+if (ctxCopy) {
+  ctxCopy.addEventListener('click', async () => {
+    if (!activeContextInput) return;
+    const selectedText = window.getSelection().toString();
+    const textToCopy = selectedText || activeContextInput.value || '';
+    internalClipboard = textToCopy;
+
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+    } catch (err) {}
+    ctxMenu.hidden = true;
+  });
+}
+
+if (ctxPaste) {
+  ctxPaste.addEventListener('click', async () => {
+    if (!activeContextInput) return;
+    let pasteText = internalClipboard;
+
+    try {
+      const clipText = await navigator.clipboard.readText();
+      if (clipText) pasteText = clipText;
+    } catch (err) {}
+
+    if (pasteText) {
+      activeContextInput.value = pasteText;
+      activeContextInput.dispatchEvent(new Event('input', { bubbles: true }));
+      if (activeContextInput.tagName === 'TEXTAREA') autoResizeTextarea(activeContextInput);
+    }
+    ctxMenu.hidden = true;
+  });
+}
+
+if (ctxSyncField) {
+  ctxSyncField.addEventListener('click', () => {
+    if (!activeContextInput) return;
+    const fieldName = activeContextInput.dataset.field;
+    const val = activeContextInput.value || '';
+
+    if (fieldName) {
+      for (const lName in LECTURES) {
+        LECTURES[lName][fieldName] = val;
+      }
+      alert(`Đã sao chép nội dung ô "${fieldName}" sang tất cả ${LECTURE_ORDER.length} bài giảng!`);
+      queuePreview();
+    } else {
+      alert('Đã đồng bộ ô hiện tại!');
+    }
+    ctxMenu.hidden = true;
+  });
+}
+
+if (ctxClear) {
+  ctxClear.addEventListener('click', () => {
+    if (!activeContextInput) return;
+    activeContextInput.value = '';
+    activeContextInput.dispatchEvent(new Event('input', { bubbles: true }));
+    if (activeContextInput.tagName === 'TEXTAREA') autoResizeTextarea(activeContextInput);
+    ctxMenu.hidden = true;
   });
 }
 
