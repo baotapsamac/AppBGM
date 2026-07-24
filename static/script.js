@@ -88,6 +88,12 @@ function applyDataset(data, statusMsg) {
   renderWarnings(data.warnings);
   renderTabs();
   renderForm();
+
+  const mainWorkspace = $('#mainWorkspace') || document.querySelector('.workspace');
+  if (mainWorkspace && mainWorkspace.classList.contains('matrix-mode-active')) {
+    renderMatrixView();
+  }
+
   if ($('#btnExportOne')) $('#btnExportOne').disabled = false;
   if ($('#btnDirectEdit')) $('#btnDirectEdit').disabled = false;
   updateExportAllLabel();
@@ -625,12 +631,13 @@ const PRESET_FIELDS = [
 
 const btnSavePreset = $('#btnSavePreset');
 if (btnSavePreset) {
-  btnSavePreset.addEventListener('click', () => {
+  btnSavePreset.addEventListener('click', async () => {
     saveCurrentFormIntoState();
     if (!CURRENT || !LECTURES[CURRENT]) {
-      alert('Chưa chọn bài giảng nào để lưu mẫu.');
+      showToast('Chưa chọn bài giảng để lưu mẫu.', 'warning');
       return;
     }
+
     const presetData = {};
     PRESET_FIELDS.forEach((f) => {
       if (LECTURES[CURRENT][f] !== undefined) {
@@ -643,71 +650,76 @@ if (btnSavePreset) {
       txtContent += `${key}=${String(presetData[key]).replace(/\n/g, '\\n')}\n`;
     }
 
-    const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'Mau_ThongTin_BaiGiang.txt';
-    link.click();
-    URL.revokeObjectURL(link.href);
-
-    alert('Đã xuất file Mẫu Thông Tin thành công: "Mau_ThongTin_BaiGiang.txt"');
+    try {
+      const res = await fetch('/api/save_preset_native', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: txtContent })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Lỗi khi lưu file mẫu.', 'warning');
+      } else if (data.success) {
+        showToast('Đã lưu Mẫu Thông Tin (.txt) thành công!', 'success');
+      }
+    } catch (e) {
+      showToast('Lỗi kết nối: ' + e, 'warning');
+    }
   });
 }
 
 const btnLoadPreset = $('#btnLoadPreset');
 if (btnLoadPreset) {
-  btnLoadPreset.addEventListener('click', () => {
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = '.txt';
+  btnLoadPreset.addEventListener('click', async () => {
+    try {
+      const res = await fetch('/api/load_preset_native', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Lỗi khi đọc file mẫu.', 'warning');
+        return;
+      }
 
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+      if (!data.success || !data.content) return;
 
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const text = evt.target.result;
-        const presetData = {};
-        const lines = text.split('\n');
+      const presetData = {};
+      const lines = data.content.split('\n');
 
-        lines.forEach((line) => {
-          line = line.trim();
-          if (!line || line.startsWith('#')) return;
-          const eqIdx = line.indexOf('=');
-          if (eqIdx !== -1) {
-            const key = line.substring(0, eqIdx).trim();
-            const val = line.substring(eqIdx + 1).replace(/\\n/g, '\n').trim();
-            presetData[key] = val;
-          }
-        });
-
-        if (Object.keys(presetData).length === 0) {
-          alert('File .txt không chứa dữ liệu mẫu hợp lệ.');
-          return;
+      lines.forEach((line) => {
+        line = line.trim();
+        if (!line || line.startsWith('#')) return;
+        const eqIdx = line.indexOf('=');
+        if (eqIdx !== -1) {
+          const key = line.substring(0, eqIdx).trim();
+          const val = line.substring(eqIdx + 1).replace(/\\n/g, '\n').trim();
+          presetData[key] = val;
         }
+      });
 
-        const applyToAll = confirm('Bạn có muốn áp dụng Mẫu Thông Tin này cho TẤT CẢ các bài giảng hiện tại không?\n\n- Bấm OK (Đồng ý): Áp dụng cho TẤT CẢ bài giảng.\n- Bấm Cancel (Hủy): Chỉ áp dụng cho bài giảng hiện tại.');
+      if (Object.keys(presetData).length === 0) {
+        showToast('File .txt không chứa dữ liệu mẫu hợp lệ.', 'warning');
+        return;
+      }
 
-        if (applyToAll) {
-          for (const lName in LECTURES) {
-            Object.assign(LECTURES[lName], presetData);
-          }
-          alert(`Đã nạp và áp dụng Mẫu Thông Tin từ file .txt cho tất cả ${LECTURE_ORDER.length} bài giảng!`);
-        } else {
-          if (CURRENT && LECTURES[CURRENT]) {
-            Object.assign(LECTURES[CURRENT], presetData);
-            alert(`Đã nạp Mẫu Thông Tin cho bài giảng: "${CURRENT}"!`);
-          }
+      const applyToAll = confirm('Bạn có muốn áp dụng Mẫu Thông Tin này cho TẤT CẢ các bài giảng hiện tại không?\n\n- Bấm OK (Đồng ý): Áp dụng cho TẤT CẢ bài giảng.\n- Bấm Cancel (Hủy): Chỉ áp dụng cho bài giảng hiện tại.');
+
+      if (applyToAll) {
+        for (const lName in LECTURES) {
+          Object.assign(LECTURES[lName], presetData);
         }
+        showToast(`Đã nạp Mẫu Thông Tin cho tất cả ${LECTURE_ORDER.length} bài giảng!`, 'success');
+      } else {
+        if (CURRENT && LECTURES[CURRENT]) {
+          Object.assign(LECTURES[CURRENT], presetData);
+          showToast(`Đã nạp Mẫu Thông Tin cho bài giảng: "${CURRENT}"!`, 'success');
+        }
+      }
 
-        renderForm();
-        queuePreview();
-      };
-      reader.readAsText(file, 'UTF-8');
-    });
-
-    fileInput.click();
+      saveWorkspaceSession();
+      renderForm();
+      updatePreview();
+    } catch (e) {
+      showToast('Lỗi kết nối: ' + e, 'warning');
+    }
   });
 }
 
@@ -726,7 +738,7 @@ if (btnExportData) {
       const res = await fetch('/api/export_excel_data_native', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lectures: LECTURES, lecture_order: LECTURE_ORDER })
+        body: JSON.stringify({ lectures: LECTURES, lecture_order: LECTURE_ORDER, fields: FIELDS })
       });
       const data = await res.json();
       if (!res.ok) {

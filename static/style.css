@@ -315,11 +315,10 @@ body{
 .tab-filter:focus{outline:none; border-color:var(--navy);}
 .lecture-tabs{
   display:flex;
-  gap:2px;
-  padding:10px 10px 0;
-  overflow-x:auto;
+  flex-wrap: wrap;
+  gap:4px;
+  padding:4px 0;
   flex-shrink:0;
-  border-bottom:1px solid var(--paper-line);
 }
 .tab-empty{
   font-size:12.5px;

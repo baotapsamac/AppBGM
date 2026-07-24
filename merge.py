@@ -82,7 +82,9 @@ def read_lectures(xlsx_path):
 
     SECTION_TITLES = [
         'THÔNG TIN HÀNH CHÍNH', 'MỤC ĐÍCH & YÊU CẦU', 'NỘI DUNG & PHÂN BỔ',
-        'TỔ CHỨC, PHƯƠNG PHÁP', 'CHI TIẾT CÁC PHẦN', 'TÊN TRƯỜNG THÔNG TIN'
+        'TỔ CHỨC, PHƯƠNG PHÁP', 'CHI TIẾT CÁC PHẦN', 'TÊN TRƯỜNG THÔNG TIN',
+        'PHẦN I', 'PHẦN II', 'PHẦN III', 'PHẦN IV', 'PHẦN V',
+        'NHÓM I', 'NHÓM II', 'NHÓM III', 'NHÓM IV', 'NHÓM V'
     ]
 
     field_order = []
@@ -119,7 +121,17 @@ def read_lectures(xlsx_path):
                 values[key] = str(val)
 
         if any(str(v).strip() for v in values.values()):
-            name = col_name if col_name and col_name != 'TÊN TRƯỜNG THÔNG TIN' else ('Bài %d' % lecture_count)
+            name = ''
+            if col_name and col_name.upper() not in ('NỘI DUNG', 'TÊN TRƯỜNG THÔNG TIN', 'NHÃN BÀI GIẢNG'):
+                name = col_name
+            elif values.get('Tên bài giảng'):
+                tb = str(values.get('Tên bài giảng')).strip()
+                if tb:
+                    name = tb.split('\n')[0].strip()
+
+            if not name:
+                name = f'Bài {lecture_count}'
+
             base_name = name
             dup_idx = 1
             while name in lectures:

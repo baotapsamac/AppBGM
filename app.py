@@ -120,6 +120,21 @@ def upload():
             os.remove(xlsx_path)
 
 
+APP_DEFAULT_DATA_DIR = os.path.join(os.path.expanduser('~'), 'Documents', 'AppBGM_Data')
+os.makedirs(APP_DEFAULT_DATA_DIR, exist_ok=True)
+LAST_USED_DIR = APP_DEFAULT_DATA_DIR
+
+def get_dialog_dir():
+    global LAST_USED_DIR
+    if LAST_USED_DIR and os.path.exists(LAST_USED_DIR):
+        return LAST_USED_DIR
+    return APP_DEFAULT_DATA_DIR
+
+def update_dialog_dir(file_path):
+    global LAST_USED_DIR
+    if file_path:
+        LAST_USED_DIR = os.path.dirname(file_path)
+
 @app.route('/api/open_excel_native', methods=['POST'])
 def open_excel_native():
     try:
@@ -128,12 +143,13 @@ def open_excel_native():
             return jsonify({'error': 'Không tìm thấy cửa sổ ứng dụng để mở hộp thoại.'}), 400
             
         file_types = ('Excel Files (*.xlsx;*.xls)', 'All files (*.*)')
-        result = webview.windows[0].create_file_dialog(webview.OPEN_DIALOG, directory='', file_types=file_types)
+        result = webview.windows[0].create_file_dialog(webview.OPEN_DIALOG, directory=get_dialog_dir(), file_types=file_types)
         
         if not result or not result[0]:
             return jsonify({'success': False, 'message': 'Đã hủy chọn file.'})
             
         file_path = result[0]
+        update_dialog_dir(file_path)
         data, status = _parse_excel(file_path)
         
         if status == 200:
@@ -183,13 +199,14 @@ def download_template_native():
             return jsonify({'error': 'Không tìm thấy cửa sổ ứng dụng để mở hộp thoại.'}), 400
             
         file_types = ('Excel Files (*.xlsx)', 'All files (*.*)')
-        result = webview.windows[0].create_file_dialog(webview.SAVE_DIALOG, directory='', save_filename='Mau_DuLieu.xlsx', file_types=file_types)
+        result = webview.windows[0].create_file_dialog(webview.SAVE_DIALOG, directory=get_dialog_dir(), save_filename='Mau_DuLieu.xlsx', file_types=file_types)
         
         if not result or not result[0]:
             return jsonify({'success': False, 'message': 'Đã hủy lưu file.'})
             
         save_path = result[0]
-        
+        update_dialog_dir(save_path)
+
         sample_path = resource_path('sample/DULIEU_BaiGiang.xlsx')
         import openpyxl
         from openpyxl.styles import Protection
@@ -228,12 +245,13 @@ def export_excel_data_native():
             return jsonify({'error': 'Không tìm thấy cửa sổ ứng dụng.'}), 400
 
         file_types = ('Excel Files (*.xlsx)', 'All files (*.*)')
-        result = webview.windows[0].create_file_dialog(webview.SAVE_DIALOG, directory='', save_filename='DuLieu_BaiGiang_DaLuu.xlsx', file_types=file_types)
+        result = webview.windows[0].create_file_dialog(webview.SAVE_DIALOG, directory=get_dialog_dir(), save_filename='DuLieu_BaiGiang_DaLuu.xlsx', file_types=file_types)
 
         if not result or not result[0]:
             return jsonify({'success': False, 'message': 'Đã hủy lưu file.'})
 
         save_path = result[0]
+        update_dialog_dir(save_path)
 
         import openpyxl
         from openpyxl.styles import Protection, Font, Alignment, PatternFill, Border, Side
@@ -274,7 +292,11 @@ def export_excel_data_native():
 
         ws.row_dimensions[1].height = 28
 
-        fields = [f for f, _ in TEMPLATE_FIELDS_META]
+        raw_fields = data.get('fields', [])
+        if raw_fields:
+            fields = [f['name'] if isinstance(f, dict) else f for f in raw_fields]
+        else:
+            fields = [f for f, _ in TEMPLATE_FIELDS_META]
         current_row = 2
 
         for f_name in fields:
@@ -403,19 +425,71 @@ def export_one_native():
             return jsonify({'error': 'Không tìm thấy cửa sổ ứng dụng để mở hộp thoại.'}), 400
             
         file_types = ('Word Documents (*.docx)', 'All files (*.*)')
-        result = webview.windows[0].create_file_dialog(webview.SAVE_DIALOG, directory='', save_filename='%s.docx' % safe, file_types=file_types)
+        result = webview.windows[0].create_file_dialog(webview.SAVE_DIALOG, directory=get_dialog_dir(), save_filename='%s.docx' % safe, file_types=file_types)
         
         if not result or not result[0]:
             return jsonify({'success': False, 'message': 'Đã hủy lưu file.'})
             
         save_path = result[0]
+        update_dialog_dir(save_path)
         data, ext = _build_output(values, uuid.uuid4().hex[:8])
         with open(save_path, 'wb') as f:
             f.write(data)
         
-        return jsonify({'success': True, 'message': 'Đã xuất và lưu bài giảng thành công tại:\\n' + save_path})
+        return jsonify({'success': True, 'message': 'Đã xuất và lưu bài giảng thành công tại:\n' + save_path})
     except Exception as e:
         return jsonify({'error': 'Lỗi khi xuất file: %s' % e}), 500
+
+
+@app.route('/api/save_preset_native', methods=['POST'])
+def save_preset_native():
+    try:
+        data = request.json or {}
+        txt_content = data.get('content', '')
+        if not txt_content:
+            return jsonify({'error': 'Nội dung mẫu rỗng.'}), 400
+
+        import webview
+        if not webview.windows:
+            return jsonify({'error': 'Không tìm thấy cửa sổ ứng dụng.'}), 400
+
+        file_types = ('Text Files (*.txt)', 'All files (*.*)')
+        result = webview.windows[0].create_file_dialog(webview.SAVE_DIALOG, directory=get_dialog_dir(), save_filename='Mau_ThongTin_BaiGiang.txt', file_types=file_types)
+
+        if not result or not result[0]:
+            return jsonify({'success': False, 'message': 'Đã hủy lưu file.'})
+
+        save_path = result[0]
+        update_dialog_dir(save_path)
+        with open(save_path, 'w', encoding='utf-8') as f:
+            f.write(txt_content)
+
+        return jsonify({'success': True, 'message': 'Đã lưu Mẫu Thông Tin thành công tại:\n' + save_path, 'save_path': save_path})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/load_preset_native', methods=['POST'])
+def load_preset_native():
+    try:
+        import webview
+        if not webview.windows:
+            return jsonify({'error': 'Không tìm thấy cửa sổ ứng dụng.'}), 400
+
+        file_types = ('Text Files (*.txt)', 'All files (*.*)')
+        result = webview.windows[0].create_file_dialog(webview.OPEN_DIALOG, directory=get_dialog_dir(), file_types=file_types)
+
+        if not result or not result[0]:
+            return jsonify({'success': False, 'message': 'Đã hủy chọn file.'})
+
+        file_path = result[0]
+        update_dialog_dir(file_path)
+        with open(file_path, 'r', encoding='utf-8') as f:
+            text = f.read()
+
+        return jsonify({'success': True, 'content': text, 'file_path': file_path})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 # ---- Xuất tất cả: chạy nền + báo tiến trình, 1 bài lỗi không làm hỏng cả gói ----
@@ -541,12 +615,13 @@ def export_all_result_native(job_id):
             return jsonify({'error': 'Không tìm thấy cửa sổ ứng dụng để mở hộp thoại.'}), 400
             
         file_types = ('ZIP Files (*.zip)', 'All files (*.*)')
-        result = webview.windows[0].create_file_dialog(webview.SAVE_DIALOG, directory='', save_filename='BoBaiGiang.zip', file_types=file_types)
+        result = webview.windows[0].create_file_dialog(webview.SAVE_DIALOG, directory=get_dialog_dir(), save_filename='BoBaiGiang.zip', file_types=file_types)
         
         if not result or not result[0]:
             return jsonify({'success': False, 'message': 'Đã hủy lưu file.'})
             
         save_path = result[0]
+        update_dialog_dir(save_path)
         shutil.copy2(zip_path, save_path)
         return jsonify({'success': True, 'message': 'Đã xuất và lưu file thành công tại:\n' + save_path})
     except Exception as e:
