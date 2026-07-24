@@ -251,6 +251,19 @@ body{
   overflow-y:auto;
   padding:16px 18px 8px;
 }
+.form-section-header{
+  background: var(--paper-bg);
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  border-left: 4px solid var(--navy);
+  margin: 16px 0 10px;
+}
+.form-section-header:first-child{
+  margin-top: 0;
+}
 .field-row{
   margin-bottom:14px;
 }

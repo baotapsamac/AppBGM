@@ -52,6 +52,13 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/api/init_default_data', methods=['GET'])
+def init_default_data():
+    sample_path = resource_path('sample/DULIEU_BaiGiang.xlsx')
+    data, status = _parse_excel(sample_path)
+    return jsonify(data), status
+
+
 def _parse_excel(xlsx_path):
     try:
         field_order, lectures = merge.read_lectures(xlsx_path)

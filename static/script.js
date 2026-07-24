@@ -66,6 +66,52 @@ $('#btnHints').addEventListener('click', () => {
   driverObj.drive();
 });
 
+function applyDataset(data, statusMsg) {
+  FIELDS = data.fields;
+  LECTURES = data.lectures;
+
+  for (const lectureName in LECTURES) {
+    const lectureData = LECTURES[lectureName];
+    for (const fieldName in lectureData) {
+      if (shouldAutoPunctuate(fieldName) && lectureData[fieldName]) {
+        lectureData[fieldName] = autoPunctuate(String(lectureData[fieldName]));
+      }
+    }
+  }
+
+  LECTURE_ORDER = data.lecture_order;
+  CURRENT = LECTURE_ORDER[0];
+  SELECTED_FOR_EXPORT = new Set(LECTURE_ORDER);
+  TAB_FILTER = '';
+  if ($('#tabFilter')) $('#tabFilter').value = '';
+
+  renderWarnings(data.warnings);
+  renderTabs();
+  renderForm();
+  if ($('#btnExportOne')) $('#btnExportOne').disabled = false;
+  if ($('#btnDirectEdit')) $('#btnDirectEdit').disabled = false;
+  updateExportAllLabel();
+  $('#statusBox').textContent = statusMsg || `Đã nạp ${LECTURE_ORDER.length} bài giảng · ${FIELDS.length} trường`;
+  $('#statusBox').classList.add('ready');
+
+  updatePreview();
+}
+
+// ---------- Tự động nạp dữ liệu mặc định khi vừa mở App ----------
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/api/init_default_data');
+    if (res.ok) {
+      const data = await res.json();
+      applyDataset(data, 'Đã sẵn sàng chỉnh sửa dữ liệu bài giảng');
+      $('#nameXlsx').textContent = 'Đã nạp dữ liệu mặc định (Bấm để chọn file khác)';
+      $('#dropXlsx').classList.add('filled');
+    }
+  } catch (e) {
+    console.log('Init default data notice:', e);
+  }
+});
+
 // ---------- Chọn file ----------
 $('#dropXlsx').addEventListener('click', async () => {
   const nameEl = $('#nameXlsx');
@@ -87,37 +133,7 @@ $('#dropXlsx').addEventListener('click', async () => {
 
     nameEl.textContent = 'Đã nạp file dữ liệu';
     $('#dropXlsx').classList.add('filled');
-    
-    FIELDS = data.fields;
-    LECTURES = data.lectures;
-    
-    // Tự động chuẩn hóa toàn bộ dữ liệu vừa nạp từ Excel
-    for (const lectureName in LECTURES) {
-      const lectureData = LECTURES[lectureName];
-      for (const fieldName in lectureData) {
-        if (shouldAutoPunctuate(fieldName) && lectureData[fieldName]) {
-          lectureData[fieldName] = autoPunctuate(String(lectureData[fieldName]));
-        }
-      }
-    }
-    
-    LECTURE_ORDER = data.lecture_order;
-    CURRENT = LECTURE_ORDER[0];
-    SELECTED_FOR_EXPORT = new Set(LECTURE_ORDER);
-    TAB_FILTER = '';
-    $('#tabFilter').value = '';
-
-    renderWarnings(data.warnings);
-    renderTabs();
-    renderForm();
-    $('#btnExportOne').disabled = false;
-    if ($('#btnDirectEdit')) $('#btnDirectEdit').disabled = false;
-    updateExportAllLabel();
-    $('#statusBox').textContent = `Đã nạp ${LECTURE_ORDER.length} bài giảng · ${FIELDS.length} trường`;
-    $('#statusBox').classList.add('ready');
-    
-    updatePreview(); // Trigger initial preview
-    
+    applyDataset(data, `Đã nạp ${data.lecture_order.length} bài giảng từ file Excel`);
   } catch (e) {
     alert('Lỗi kết nối: ' + e);
     nameEl.textContent = 'Bấm để chọn file Excel dữ liệu…';
@@ -258,6 +274,14 @@ function updateExportAllLabel() {
   btn.disabled = (n === 0);
 }
 
+const FIELD_SECTION_MAP = {
+  'Tên khoa': '🏛️ I. THÔNG TIN HÀNH CHÍNH & PHÊ DUYỆT',
+  'Mục đích': '🎯 II. MỤC ĐÍCH & YÊU CẦU BÀI GIẢNG',
+  'Nội dung bài giảng': '⏱️ III. NỘI DUNG & PHÂN BỔ THỜI GIAN',
+  'Tổ chức lớp học': '🏫 IV. TỔ CHỨC, PHƯƠNG PHÁP & VẬT CHẤT',
+  'Thời gian thực hành giảng bài': '📝 V. CHI TIẾT CÁC PHẦN GIẢNG BÀI'
+};
+
 // ---------- Form dữ liệu ----------
 function renderForm() {
   const wrap = $('#fieldForm');
@@ -266,13 +290,19 @@ function renderForm() {
   const rowByField = {};
 
   FIELDS.forEach((f) => {
+    if (FIELD_SECTION_MAP[f.name]) {
+      const secHeader = document.createElement('div');
+      secHeader.className = 'form-section-header';
+      secHeader.textContent = FIELD_SECTION_MAP[f.name];
+      wrap.appendChild(secHeader);
+    }
+
     const row = document.createElement('div');
     row.className = `field-row kind-${f.kind}`;
     rowByField[f.name] = row;
 
     const label = document.createElement('label');
     label.className = 'field-label';
-    // Các trường "Thời gian ..." đều tính bằng phút — ghi rõ đơn vị cho dễ hiểu.
     label.textContent = (f.kind === 'number' && f.name.startsWith('Thời gian')) ? `${f.name} (phút)` : f.name;
     row.appendChild(label);
 
@@ -477,10 +507,10 @@ function queuePreview() {
 
 // ---------- Preset Manager (Lưu/Tải Mẫu Thông Tin Cố Định) ----------
 const PRESET_FIELDS = [
-  'Tên khoa', 'Chức vụ người phê duyệt', 'Cấp bậc, học vị người phê duyệt', 'Họ tên người phê duyệt',
-  'Địa điểm phê duyệt', 'Chức vụ người thông qua', 'Cấp bậc, học vị người thông qua', 'Họ tên người thông qua',
+  'Tên khoa', 'Chức vụ người phê duyệt', 'Cấp bậc, học vị, họ tên người phê duyệt',
+  'Địa điểm phê duyệt', 'Chức vụ người thông qua', 'Cấp bậc, học vị, họ tên người thông qua',
   'Phương pháp thông qua', 'Địa điểm thông qua', 'Chức vụ giảng viên biên soạn',
-  'Cấp bậc, học vị giảng viên biên soạn', 'Họ tên giảng viên biên soạn'
+  'Cấp bậc, học vị, họ tên giảng viên biên soạn'
 ];
 
 const btnSavePreset = $('#btnSavePreset');
